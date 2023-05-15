@@ -26,6 +26,8 @@
  */
 package cientistavuador.bakedlightingexperiment;
 
+import cientistavuador.bakedlightingexperiment.text.GLFonts;
+import cientistavuador.bakedlightingexperiment.ubo.UBOBindingPoints;
 import java.io.PrintStream;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import static org.lwjgl.glfw.GLFW.*;
@@ -46,6 +48,7 @@ public class Main {
     public static final boolean USE_MSAA = false;
     public static final boolean DEBUG_ENABLED = true;
     public static final boolean SPIKE_LAG_WARNINGS = false;
+    public static final int MIN_UNIFORM_BUFFER_BINDINGS = UBOBindingPoints.MIN_NUMBER_OF_UBO_BINDING_POINTS;
 
     static {
         org.lwjgl.system.Configuration.LIBRARY_PATH.set("natives");
@@ -242,9 +245,14 @@ public class Main {
         glEnable(GL_CULL_FACE);
         glCullFace(GL_BACK);
         glLineWidth(1f);
+        int maxUBOBindings = glGetInteger(GL_MAX_UNIFORM_BUFFER_BINDINGS);
+        if (maxUBOBindings < MIN_UNIFORM_BUFFER_BINDINGS) {
+            throw new IllegalStateException("Max UBO Bindings too small! Update your drivers or buy a new GPU.");
+        }
         
         Main.checkGLError();
         
+        GLFonts.init(); //static initialize
         Game.get(); //static initialize
 
         Main.checkGLError();
