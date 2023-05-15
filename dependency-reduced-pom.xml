@@ -57,7 +57,7 @@
     </dependencies>
   </dependencyManagement>
   <properties>
-    <exec.mainClass>cientistavuador.bakedlightingexperiment.BakedLightingExperiment</exec.mainClass>
+    <exec.mainClass>cientistavuador.bakedlightingexperiment.MainWrapper</exec.mainClass>
     <maven.compiler.source>17</maven.compiler.source>
     <lwjgl.natives>natives-windows</lwjgl.natives>
     <joml.version>1.10.5</joml.version>
