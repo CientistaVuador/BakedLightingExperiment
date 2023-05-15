@@ -218,6 +218,8 @@ public class Triangle {
         }
         
         glDrawArrays(GL_TRIANGLES, 0, 3);
+        Main.NUMBER_OF_DRAWCALLS++;
+        Main.NUMBER_OF_VERTICES += 3;
         
         glBindVertexArray(0);
         glUseProgram(0);

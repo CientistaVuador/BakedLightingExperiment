@@ -50,7 +50,7 @@ public class Game {
 
     private final FreeCamera camera = new FreeCamera();
     private final Triangle triangle = new Triangle();
-    
+
     private Game() {
 
     }
@@ -62,10 +62,10 @@ public class Game {
 
     public void loop() {
         camera.updateMovement();
-        
+
         triangle.render(new Matrix4f(this.camera.getProjectionView()));
         AabRender.renderQueue(camera);
-        
+
         GLFontRenderer.render(-1f, 0.90f,
                 new GLFontSpecification[]{
                     GLFontSpecifications.OPENSANS_ITALIC_0_10_BANANA_YELLOW,
@@ -104,10 +104,10 @@ public class Game {
     }
 
     public void keyCallback(long window, int key, int scancode, int action, int mods) {
-        
+
     }
 
     public void mouseCallback(long window, int button, int action, int mods) {
-        
+
     }
 }
