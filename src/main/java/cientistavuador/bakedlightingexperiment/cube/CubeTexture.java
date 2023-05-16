@@ -41,10 +41,14 @@ import static org.lwjgl.opengl.GL33C.*;
 public class CubeTexture {
 
     public static final int CUBE_TEXTURE;
-
+    public static final int TEXTURE_WIDTH;
+    public static final int TEXTURE_HEIGHT;
+    
     static {
-        NativeImage cubeImage = ImageResources.load("cube_2048.png", 4);
-
+        NativeImage cubeImage = ImageResources.load("cube.png", 4);
+        TEXTURE_WIDTH = cubeImage.getWidth();
+        TEXTURE_HEIGHT = cubeImage.getHeight();
+        
         glActiveTexture(GL_TEXTURE0);
         
         CUBE_TEXTURE = glGenTextures();
@@ -53,8 +57,8 @@ public class CubeTexture {
                 GL_TEXTURE_2D,
                 0,
                 GL_RGBA8,
-                cubeImage.getWidth(),
-                cubeImage.getHeight(),
+                TEXTURE_WIDTH,
+                TEXTURE_HEIGHT,
                 0,
                 GL_RGBA,
                 GL_UNSIGNED_BYTE,
@@ -62,8 +66,8 @@ public class CubeTexture {
         );
         cubeImage.free();
         
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);

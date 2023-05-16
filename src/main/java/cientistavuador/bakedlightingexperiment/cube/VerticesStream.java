@@ -26,7 +26,6 @@
  */
 package cientistavuador.bakedlightingexperiment.cube;
 
-import java.nio.ByteOrder;
 import java.util.Arrays;
 
 /**
@@ -34,7 +33,7 @@ import java.util.Arrays;
  * @author Cien
  */
 public class VerticesStream {
-
+    
     private float[] vertices = new float[64];
     private int verticesIndex = 0;
 
@@ -43,14 +42,30 @@ public class VerticesStream {
 
     private int offset = 0;
 
-    public VerticesStream() {
+    private final int textureWidth;
+    private final int textureHeight;
+    private final int lightmapWidth;
+    private final int lightmapHeight;
+    
+    private final float texScaleX;
+    private final float texScaleY;
+    private final float mapScaleX;
+    private final float mapScaleY;
+
+    public VerticesStream(int textureWidth, int textureHeight, int lightmapWidth, int lightmapHeight) {
+        this.textureWidth = textureWidth;
+        this.textureHeight = textureHeight;
+        this.lightmapWidth = lightmapWidth;
+        this.lightmapHeight = lightmapHeight;
         
+        this.texScaleX = textureWidth / 512f;
+        this.texScaleY = textureHeight / 512f;
+        this.mapScaleX = lightmapWidth / 512f;
+        this.mapScaleY = lightmapHeight / 512f;
     }
 
-    public void reset(int layerY) {
-        this.verticesIndex = 0;
-        this.indicesIndex = 0;
-        this.offset = 0;
+    public VerticesStream() {
+        this(512, 512, 512, 512);
     }
     
     public int numberOfVertices() {
@@ -61,7 +76,7 @@ public class VerticesStream {
         return this.indicesIndex;
     }
 
-    public void vertex(float x, float y, float z, float nX, float nY, float nZ, float texX, float texY) {
+    public void vertex(float x, float y, float z, float nX, float nY, float nZ, float texX, float texY, float cornerX, float cornerY) {
         if ((this.verticesIndex + Cube.VERTEX_SIZE_ELEMENTS) > this.vertices.length) {
             this.vertices = Arrays.copyOf(this.vertices, (this.vertices.length * 2) + Cube.VERTEX_SIZE_ELEMENTS);
         }
@@ -72,12 +87,20 @@ public class VerticesStream {
         this.vertices[this.verticesIndex + 3] = nX;
         this.vertices[this.verticesIndex + 4] = nY;
         this.vertices[this.verticesIndex + 5] = nZ;
-        this.vertices[this.verticesIndex + 6] = texX;
-        this.vertices[this.verticesIndex + 7] = texY;
+        
+        float colorX = (((texX * this.texScaleX) + ((this.texScaleX - 1) * cornerX)) + 0.5f) / this.textureWidth;
+        float colorY = (((texY * this.texScaleY) + ((this.texScaleY - 1) * cornerY)) + 0.5f) / this.textureHeight;
+        float mapX = (((texX * this.mapScaleX) + ((this.mapScaleX - 1) * cornerX)) + 0.5f) / this.lightmapWidth;
+        float mapY = (((texY * this.mapScaleY) + ((this.mapScaleY - 1) * cornerY)) + 0.5f) / this.lightmapHeight;
+        
+        this.vertices[this.verticesIndex + 6] = colorX;
+        this.vertices[this.verticesIndex + 7] = colorY;
+        this.vertices[this.verticesIndex + 8] = mapX;
+        this.vertices[this.verticesIndex + 9] = mapY;
         
         this.verticesIndex += Cube.VERTEX_SIZE_ELEMENTS;
     }
-
+    
     public void index(int index) {
         if (this.indices.length == this.indicesIndex) {
             this.indices = Arrays.copyOf(this.indices, this.indices.length * 2);

@@ -36,11 +36,11 @@ import org.joml.Matrix4fc;
  */
 public class Cube {
     
-    public static final int VERTEX_SIZE_ELEMENTS = 3 + 3 + 2;
+    public static final int VERTEX_SIZE_ELEMENTS = 3 + 3 + 2 + 2;
     public static final int NUMBER_OF_INDICES = 3 * 2 * 6;
+    public static final int CUBE_TEXTURE = CubeTexture.CUBE_TEXTURE;
     public static final int SHADER_PROGRAM = CubeProgram.SHADER_PROGRAM;
     public static final int VAO = CubeVAO.VAO;
-    public static final int CUBE_TEXTURE = CubeTexture.CUBE_TEXTURE;
     
     public static void init() {
         

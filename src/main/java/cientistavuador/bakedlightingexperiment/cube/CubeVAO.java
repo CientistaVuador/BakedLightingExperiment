@@ -35,18 +35,19 @@ import static org.lwjgl.opengl.GL33C.*;
 public class CubeVAO {
     
     public static final int VAO;
-
+    private static final int vbo;
+    
     static {
         VAO = glGenVertexArrays();
         glBindVertexArray(VAO);
 
-        VerticesStream stream = generateVertices();
+        VerticesStream stream = generateVertices(512, 512);
 
         int ebo = glGenBuffers();
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, stream.indices(), GL_STATIC_DRAW);
 
-        int vbo = glGenBuffers();
+        vbo = glGenBuffers();
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         glBufferData(GL_ARRAY_BUFFER, stream.vertices(), GL_STATIC_DRAW);
 
@@ -58,14 +59,25 @@ public class CubeVAO {
 
         glEnableVertexAttribArray(2);
         glVertexAttribPointer(2, 2, GL_FLOAT, false, Cube.VERTEX_SIZE_ELEMENTS * Float.BYTES, (3 + 3) * Float.BYTES);
-
+        
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 2, GL_FLOAT, false, Cube.VERTEX_SIZE_ELEMENTS * Float.BYTES, (3 + 3 + 2) * Float.BYTES);
+        
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         glBindVertexArray(0);
     }
-
-    private static VerticesStream generateVertices() {
-        VerticesStream stream = new VerticesStream();
+    
+    public static void updateLightMapSize(int width, int height) {
+        VerticesStream vertices = generateVertices(width, height);
+        
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, vertices.vertices(), GL_STATIC_DRAW);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+    }
+    
+    private static VerticesStream generateVertices(int width, int height) {
+        VerticesStream stream = new VerticesStream(CubeTexture.TEXTURE_WIDTH, CubeTexture.TEXTURE_HEIGHT, width, height);
 
         float scaleX = 1.0f;
         float scaleY = 1.0f;
@@ -84,50 +96,50 @@ public class CubeVAO {
 
         //TOP
         stream.offset();
-        stream.vertex(xN, yP, zP, 0f, 1f, 0f, 85f, 352f);
-        stream.vertex(xP, yP, zP, 0f, 1f, 0f, 212f, 352f);
-        stream.vertex(xN, yP, zN, 0f, 1f, 0f, 85f, 479f);
-        stream.vertex(xP, yP, zN, 0f, 1f, 0f, 212f, 479f);
+        stream.vertex(xN, yP, zP, 0f, 1f, 0f, 85f, 352f, 0f, 0f);
+        stream.vertex(xP, yP, zP, 0f, 1f, 0f, 212f, 352f, 1f, 0f);
+        stream.vertex(xN, yP, zN, 0f, 1f, 0f, 85f, 479f, 0f, 1f);
+        stream.vertex(xP, yP, zN, 0f, 1f, 0f, 212f, 479f, 1f, 1f);
         stream.quad(0, 3, 2, 0, 1, 3);
         
         //BOTTOM
         stream.offset();
-        stream.vertex(xN, yN, zP, 0f, -1f, 0f, 425f, 352f);
-        stream.vertex(xN, yN, zN, 0f, -1f, 0f, 425f, 479f);
-        stream.vertex(xP, yN, zP, 0f, -1f, 0f, 298f, 352f);
-        stream.vertex(xP, yN, zN, 0f, -1f, 0f, 298f, 479f);
+        stream.vertex(xN, yN, zP, 0f, -1f, 0f, 425f, 352f, 1f, 0f);
+        stream.vertex(xN, yN, zN, 0f, -1f, 0f, 425f, 479f, 1f, 1f);
+        stream.vertex(xP, yN, zP, 0f, -1f, 0f, 298f, 352f, 0f, 0f);
+        stream.vertex(xP, yN, zN, 0f, -1f, 0f, 298f, 479f, 0f, 1f);
         stream.quad(0, 3, 2, 0, 1, 3);
         
         //LEFT
         stream.offset();
-        stream.vertex(xN, yP, zN, -1f, 0f, 0f, 85f, 319f);
-        stream.vertex(xN, yN, zN, -1f, 0f, 0f, 85f, 192f);
-        stream.vertex(xN, yN, zP, -1f, 0f, 0f, 212f, 192f);
-        stream.vertex(xN, yP, zP, -1f, 0f, 0f, 212f, 319f);
+        stream.vertex(xN, yP, zN, -1f, 0f, 0f, 85f, 319f, 0f, 1f);
+        stream.vertex(xN, yN, zN, -1f, 0f, 0f, 85f, 192f, 0f, 0f);
+        stream.vertex(xN, yN, zP, -1f, 0f, 0f, 212f, 192f, 1f, 0f);
+        stream.vertex(xN, yP, zP, -1f, 0f, 0f, 212f, 319f, 1f, 1f);
         stream.quad(0, 1, 3, 1, 2, 3);
         
         //RIGHT
         stream.offset();
-        stream.vertex(xP, yP, zN, 1f, 0f, 0f, 425f, 319f);
-        stream.vertex(xP, yN, zP, 1f, 0f, 0f, 298f, 192f);
-        stream.vertex(xP, yN, zN, 1f, 0f, 0f, 425f, 192f);
-        stream.vertex(xP, yP, zP, 1f, 0f, 0f, 298f, 319f);
+        stream.vertex(xP, yP, zN, 1f, 0f, 0f, 425f, 319f, 1f, 1f);
+        stream.vertex(xP, yN, zP, 1f, 0f, 0f, 298f, 192f, 0f, 0f);
+        stream.vertex(xP, yN, zN, 1f, 0f, 0f, 425f, 192f, 1f, 0f);
+        stream.vertex(xP, yP, zP, 1f, 0f, 0f, 298f, 319f, 0f, 1f);
         stream.quad(0, 3, 2, 2, 3, 1);
         
         //FRONT
         stream.offset();
-        stream.vertex(xN, yP, zN, 0f, 0f, -1f, 212f, 159f);
-        stream.vertex(xP, yN, zN, 0f, 0f, -1f, 85f, 32f);
-        stream.vertex(xN, yN, zN, 0f, 0f, -1f, 212f, 32f);
-        stream.vertex(xP, yP, zN, 0f, 0f, -1f, 85f, 159f);
+        stream.vertex(xN, yP, zN, 0f, 0f, -1f, 212f, 159f, 1f, 1f);
+        stream.vertex(xP, yN, zN, 0f, 0f, -1f, 85f, 32f, 0f, 0f);
+        stream.vertex(xN, yN, zN, 0f, 0f, -1f, 212f, 32f, 1f, 0f);
+        stream.vertex(xP, yP, zN, 0f, 0f, -1f, 85f, 159f, 0f, 1f);
         stream.quad(0, 3, 2, 3, 1, 2);
         
         //BACK
         stream.offset();
-        stream.vertex(xN, yP, zP, 0f, 0f, 1f, 298f, 159f);
-        stream.vertex(xN, yN, zP, 0f, 0f, 1f, 298f, 32f);
-        stream.vertex(xP, yN, zP, 0f, 0f, 1f, 425f, 32f);
-        stream.vertex(xP, yP, zP, 0f, 0f, 1f, 425f, 159f);
+        stream.vertex(xN, yP, zP, 0f, 0f, 1f, 298f, 159f, 0f, 1f);
+        stream.vertex(xN, yN, zP, 0f, 0f, 1f, 298f, 32f, 0f, 0f);
+        stream.vertex(xP, yN, zP, 0f, 0f, 1f, 425f, 32f, 1f, 0f);
+        stream.vertex(xP, yP, zP, 0f, 0f, 1f, 425f, 159f, 1f, 1f);
         stream.quad(0, 1, 3, 3, 1, 2);
         
         return stream;

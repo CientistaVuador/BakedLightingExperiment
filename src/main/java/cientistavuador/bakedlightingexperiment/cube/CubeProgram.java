@@ -44,12 +44,8 @@ public class CubeProgram {
             """
             #version 330 core
             
-            #define DEFAULT_DIMENSION 512.0
-            
             uniform mat4 projectionView;
             uniform mat4 model;
-            
-            uniform sampler2D cubeTexture;
             
             layout (location = 0) in vec3 vertexPosition;
             layout (location = 2) in vec2 vertexTexture;
@@ -57,8 +53,7 @@ public class CubeProgram {
             out vec2 texCoords;
             
             void main() {
-                vec2 texSize = textureSize(cubeTexture, 0);
-                texCoords = (((vertexTexture / DEFAULT_DIMENSION) * texSize)) / texSize;
+                texCoords = vertexTexture;
                 gl_Position = projectionView * model * vec4(vertexPosition, 1.0);
             }
             """;
