@@ -45,7 +45,7 @@ public class CubeTexture {
     public static final int TEXTURE_HEIGHT;
     
     static {
-        NativeImage cubeImage = ImageResources.load("cube.png", 4);
+        NativeImage cubeImage = ImageResources.load("cube_textured.png", 4);
         TEXTURE_WIDTH = cubeImage.getWidth();
         TEXTURE_HEIGHT = cubeImage.getHeight();
         
