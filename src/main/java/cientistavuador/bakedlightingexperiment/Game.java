@@ -27,14 +27,20 @@
 package cientistavuador.bakedlightingexperiment;
 
 import cientistavuador.bakedlightingexperiment.camera.FreeCamera;
+import cientistavuador.bakedlightingexperiment.cube.Cube;
+import cientistavuador.bakedlightingexperiment.cube.CubeProgram;
 import cientistavuador.bakedlightingexperiment.ubo.CameraUBO;
 import cientistavuador.bakedlightingexperiment.ubo.UBOBindingPoints;
 import cientistavuador.bakedlightingexperiment.debug.AabRender;
-import cientistavuador.bakedlightingexperiment.debug.Triangle;
 import cientistavuador.bakedlightingexperiment.text.GLFontRenderer;
 import cientistavuador.bakedlightingexperiment.text.GLFontSpecification;
 import cientistavuador.bakedlightingexperiment.text.GLFontSpecifications;
+import java.util.ArrayList;
+import java.util.List;
 import org.joml.Matrix4f;
+import org.joml.Vector3dc;
+import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.opengl.GL33C.*;
 
 /**
  *
@@ -49,21 +55,40 @@ public class Game {
     }
 
     private final FreeCamera camera = new FreeCamera();
-    private final Triangle triangle = new Triangle();
+    private final List<Cube> cubes = new ArrayList<>();
 
     private Game() {
 
     }
 
     public void start() {
-        camera.setPosition(0, 0, 3);
+        camera.setPosition(0, 1f, 25f);
         camera.setUBO(CameraUBO.create(UBOBindingPoints.PLAYER_CAMERA));
+
+        Matrix4f model = new Matrix4f()
+                .translate(0f, -0.5f, 0f)
+                .scale(50f, 1f, 50f);
+        cubes.add(new Cube(model));
     }
 
     public void loop() {
         camera.updateMovement();
+        Matrix4f cameraProjectionView = new Matrix4f(this.camera.getProjectionView());
 
-        triangle.render(new Matrix4f(this.camera.getProjectionView()));
+        glUseProgram(Cube.SHADER_PROGRAM);
+        CubeProgram.sendPerFrameUniforms(Cube.CUBE_TEXTURE, cameraProjectionView);
+
+        glBindVertexArray(Cube.VAO);
+        for (Cube c : cubes) {
+            CubeProgram.sendPerDrawUniforms(c.getModel(), c.getNormalModel());
+            glDrawElements(GL_TRIANGLES, Cube.NUMBER_OF_INDICES, GL_UNSIGNED_INT, 0);
+            Main.NUMBER_OF_DRAWCALLS++;
+            Main.NUMBER_OF_VERTICES += Cube.NUMBER_OF_INDICES;
+        }
+        glBindVertexArray(0);
+
+        glUseProgram(0);
+
         AabRender.renderQueue(camera);
 
         GLFontRenderer.render(-1f, 0.90f,
@@ -83,6 +108,8 @@ public class Game {
                             .append("\tShift - Run\n")
                             .append("\tAlt - Wander\n")
                             .append("\tCtrl - Unlock/Lock mouse\n")
+                            .append("\tF - Spawn Cube\n")
+                            .append("\tR - Remove Cube\n")
                             .toString()
                 }
         );
@@ -104,7 +131,23 @@ public class Game {
     }
 
     public void keyCallback(long window, int key, int scancode, int action, int mods) {
-
+        if (key == GLFW_KEY_F && action == GLFW_PRESS) {
+            Vector3dc camPos = camera.getPosition();
+            Matrix4f model = new Matrix4f()
+                    .translate((float) camPos.x(), (float) camPos.y() - 0.6f, (float) camPos.z())
+                    .rotateXYZ(
+                            (float) (Math.random() * (Math.PI * 2.0)),
+                            (float) (Math.random() * (Math.PI * 2.0)),
+                            (float) (Math.random() * (Math.PI * 2.0))
+                    )
+                    .scale((float) (Math.random() * 2.5) + 0.5f);
+            cubes.add(new Cube(model));
+        }
+        if (key == GLFW_KEY_R && action == GLFW_PRESS) {
+            if (cubes.size() > 1) {
+                cubes.remove(cubes.size() - 1);
+            }
+        }
     }
 
     public void mouseCallback(long window, int button, int action, int mods) {

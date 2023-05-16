@@ -26,6 +26,9 @@
  */
 package cientistavuador.bakedlightingexperiment;
 
+import cientistavuador.bakedlightingexperiment.cube.Cube;
+import cientistavuador.bakedlightingexperiment.cube.CubeProgram;
+import cientistavuador.bakedlightingexperiment.cube.CubeVAO;
 import cientistavuador.bakedlightingexperiment.text.GLFonts;
 import cientistavuador.bakedlightingexperiment.ubo.UBOBindingPoints;
 import java.io.PrintStream;
@@ -253,6 +256,7 @@ public class Main {
         Main.checkGLError();
         
         GLFonts.init(); //static initialize
+        Cube.init(); //static initialize
         Game.get(); //static initialize
 
         Main.checkGLError();
