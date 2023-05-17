@@ -29,6 +29,8 @@ package cientistavuador.bakedlightingexperiment;
 import cientistavuador.bakedlightingexperiment.camera.FreeCamera;
 import cientistavuador.bakedlightingexperiment.cube.Cube;
 import cientistavuador.bakedlightingexperiment.cube.CubeProgram;
+import cientistavuador.bakedlightingexperiment.cube.CubeVAO;
+import cientistavuador.bakedlightingexperiment.cube.DirectionalLight;
 import cientistavuador.bakedlightingexperiment.ubo.CameraUBO;
 import cientistavuador.bakedlightingexperiment.ubo.UBOBindingPoints;
 import cientistavuador.bakedlightingexperiment.debug.AabRender;
@@ -55,6 +57,7 @@ public class Game {
     }
 
     private final FreeCamera camera = new FreeCamera();
+    private final DirectionalLight sun = new DirectionalLight();
     private final List<Cube> cubes = new ArrayList<>();
 
     private Game() {
@@ -68,7 +71,7 @@ public class Game {
         Matrix4f model = new Matrix4f()
                 .translate(0f, -0.5f, 0f)
                 .scale(50f, 1f, 50f);
-        cubes.add(new Cube(model));
+        cubes.add(new Cube(model, true));
     }
 
     public void loop() {
@@ -78,14 +81,21 @@ public class Game {
         glUseProgram(Cube.SHADER_PROGRAM);
         CubeProgram.sendPerFrameUniforms(Cube.CUBE_TEXTURE, cameraProjectionView);
 
-        glBindVertexArray(Cube.VAO);
         for (Cube c : cubes) {
-            CubeProgram.sendPerDrawUniforms(c.getModel(), c.getNormalModel());
+            if (c.isGroundCube()) {
+                glBindVertexArray(CubeVAO.GROUND_CUBE_VAO);
+            } else {
+                glBindVertexArray(Cube.VAO);
+            }
+            
+            CubeProgram.sendPerDrawUniforms(c.getLightmap(), c.getModel());
             glDrawElements(GL_TRIANGLES, Cube.NUMBER_OF_INDICES, GL_UNSIGNED_INT, 0);
+            
             Main.NUMBER_OF_DRAWCALLS++;
             Main.NUMBER_OF_VERTICES += Cube.NUMBER_OF_INDICES;
+            
+            glBindVertexArray(0);
         }
-        glBindVertexArray(0);
 
         glUseProgram(0);
 
@@ -110,6 +120,7 @@ public class Game {
                             .append("\tCtrl - Unlock/Lock mouse\n")
                             .append("\tF - Spawn Cube\n")
                             .append("\tR - Remove Cube\n")
+                            .append("\tL - Update Lightmap\n")
                             .toString()
                 }
         );
@@ -141,11 +152,21 @@ public class Game {
                             (float) (Math.random() * (Math.PI * 2.0))
                     )
                     .scale((float) (Math.random() * 2.5) + 0.5f);
-            cubes.add(new Cube(model));
+            cubes.add(new Cube(model, false));
         }
         if (key == GLFW_KEY_R && action == GLFW_PRESS) {
             if (cubes.size() > 1) {
-                cubes.remove(cubes.size() - 1);
+                Cube c = cubes.remove(cubes.size() - 1);
+                if (c != null) {
+                    c.free();
+                }
+            }
+        }
+        if (key == GLFW_KEY_L && action == GLFW_PRESS) {
+            for (Cube c:cubes) {
+                if (c != null) {
+                    c.updateLightmap(sun);
+                }
             }
         }
     }

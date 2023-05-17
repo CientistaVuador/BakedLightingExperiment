@@ -27,8 +27,6 @@
 package cientistavuador.bakedlightingexperiment;
 
 import cientistavuador.bakedlightingexperiment.cube.Cube;
-import cientistavuador.bakedlightingexperiment.cube.CubeProgram;
-import cientistavuador.bakedlightingexperiment.cube.CubeVAO;
 import cientistavuador.bakedlightingexperiment.text.GLFonts;
 import cientistavuador.bakedlightingexperiment.ubo.UBOBindingPoints;
 import java.io.PrintStream;
@@ -251,6 +249,10 @@ public class Main {
         int maxUBOBindings = glGetInteger(GL_MAX_UNIFORM_BUFFER_BINDINGS);
         if (maxUBOBindings < MIN_UNIFORM_BUFFER_BINDINGS) {
             throw new IllegalStateException("Max UBO Bindings too small! Update your drivers or buy a new GPU.");
+        }
+        int maxTextureSize = glGetInteger(GL_MAX_TEXTURE_SIZE);
+        if (maxTextureSize < 8192) {
+            throw new IllegalStateException("Max texture size must be 8192 or more! Update your drivers or buy a new GPU.");
         }
         
         Main.checkGLError();

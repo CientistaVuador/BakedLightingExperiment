@@ -46,7 +46,7 @@ import org.joml.Vector3fc;
  */
 public class PerspectiveCamera implements Camera {
 
-    public static final float DEFAULT_FOV = 80f;
+    public static final float DEFAULT_FOV = 90f;
     public static final float DEFAULT_PITCH = 0f;
     public static final float DEFAULT_YAW = -90f;
     

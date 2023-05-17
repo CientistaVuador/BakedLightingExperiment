@@ -76,6 +76,10 @@ public class VerticesStream {
         return this.indicesIndex;
     }
 
+    private float floor(float x) {
+        return (float) Math.floor(x);
+    }
+    
     public void vertex(float x, float y, float z, float nX, float nY, float nZ, float texX, float texY, float cornerX, float cornerY) {
         if ((this.verticesIndex + Cube.VERTEX_SIZE_ELEMENTS) > this.vertices.length) {
             this.vertices = Arrays.copyOf(this.vertices, (this.vertices.length * 2) + Cube.VERTEX_SIZE_ELEMENTS);
@@ -88,15 +92,21 @@ public class VerticesStream {
         this.vertices[this.verticesIndex + 4] = nY;
         this.vertices[this.verticesIndex + 5] = nZ;
         
-        float colorX = (((texX * this.texScaleX) + ((this.texScaleX - 1) * cornerX)) + 0.5f) / this.textureWidth;
-        float colorY = (((texY * this.texScaleY) + ((this.texScaleY - 1) * cornerY)) + 0.5f) / this.textureHeight;
-        float mapX = (((texX * this.mapScaleX) + ((this.mapScaleX - 1) * cornerX)) + 0.5f) / this.lightmapWidth;
-        float mapY = (((texY * this.mapScaleY) + ((this.mapScaleY - 1) * cornerY)) + 0.5f) / this.lightmapHeight;
+        float colorX = ((floor(texX * this.texScaleX) + ((floor(this.texScaleX) - 1) * cornerX)) + 0.5f) / this.textureWidth;
+        float colorY = ((floor(texY * this.texScaleY) + ((floor(this.texScaleY) - 1) * cornerY)) + 0.5f) / this.textureHeight;
+        float mapX = ((floor(texX * this.mapScaleX) + ((floor(this.mapScaleX) - 1) * cornerX)) + 0.5f) / this.lightmapWidth;
+        float mapY = ((floor(texY * this.mapScaleY) + ((floor(this.mapScaleY) - 1) * cornerY)) + 0.5f) / this.lightmapHeight;
         
         this.vertices[this.verticesIndex + 6] = colorX;
         this.vertices[this.verticesIndex + 7] = colorY;
         this.vertices[this.verticesIndex + 8] = mapX;
         this.vertices[this.verticesIndex + 9] = mapY;
+        
+        float mapPosX = mapX + ((0.5f / this.lightmapWidth) * ((cornerX - 0.5f) * 2f));
+        float mapPosY = mapY + ((0.5f / this.lightmapHeight) * ((cornerY - 0.5f) * 2f));
+        
+        this.vertices[this.verticesIndex + 10] = (mapPosX * 2f) - 1f;
+        this.vertices[this.verticesIndex + 11] = (mapPosY * 2f) - 1f;
         
         this.verticesIndex += Cube.VERTEX_SIZE_ELEMENTS;
     }

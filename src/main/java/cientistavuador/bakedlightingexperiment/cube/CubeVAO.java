@@ -34,14 +34,33 @@ import static org.lwjgl.opengl.GL33C.*;
  */
 public class CubeVAO {
     
+    public static final int GROUND_CUBE_VAO;
+    public static final int GROUND_CUBE_WIDTH = 4096;
+    public static final int GROUND_CUBE_HEIGHT = 4096;
+    
     public static final int VAO;
-    private static final int vbo;
+    private static int vbo;
+    private static int lightmapWidth;
+    private static int lightmapHeight;
+
+    public static int getLightmapHeight() {
+        return lightmapHeight;
+    }
+
+    public static int getLightmapWidth() {
+        return lightmapWidth;
+    }
     
     static {
-        VAO = glGenVertexArrays();
-        glBindVertexArray(VAO);
+        GROUND_CUBE_VAO = generateVao(GROUND_CUBE_WIDTH, GROUND_CUBE_HEIGHT);
+        VAO = generateVao(512, 512);
+    }
+    
+    private static int generateVao(int width, int height) {
+        int vao = glGenVertexArrays();
+        glBindVertexArray(vao);
 
-        VerticesStream stream = generateVertices(512, 512);
+        VerticesStream stream = generateVertices(width, height);
 
         int ebo = glGenBuffers();
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
@@ -63,9 +82,14 @@ public class CubeVAO {
         glEnableVertexAttribArray(3);
         glVertexAttribPointer(3, 2, GL_FLOAT, false, Cube.VERTEX_SIZE_ELEMENTS * Float.BYTES, (3 + 3 + 2) * Float.BYTES);
         
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 2, GL_FLOAT, false, Cube.VERTEX_SIZE_ELEMENTS * Float.BYTES, (3 + 3 + 2 + 2) * Float.BYTES);
+        
         glBindBuffer(GL_ARRAY_BUFFER, 0);
 
         glBindVertexArray(0);
+        
+        return vao;
     }
     
     public static void updateLightMapSize(int width, int height) {
@@ -141,6 +165,10 @@ public class CubeVAO {
         stream.vertex(xP, yN, zP, 0f, 0f, 1f, 425f, 32f, 1f, 0f);
         stream.vertex(xP, yP, zP, 0f, 0f, 1f, 425f, 159f, 1f, 1f);
         stream.quad(0, 1, 3, 3, 1, 2);
+        
+        lightmapWidth = width;
+        lightmapHeight = height;
+        
         
         return stream;
     }
