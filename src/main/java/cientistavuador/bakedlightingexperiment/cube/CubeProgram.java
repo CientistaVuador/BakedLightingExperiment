@@ -75,8 +75,16 @@ public class CubeProgram {
             in vec2 texCoordsLightmap;
             
             void main() {
+                vec4 textureColor = texture(cubeTexture, texCoords);
+                
+                textureColor.rgb = pow(textureColor.rgb, vec3(2.2));
+                
                 vec3 lightColor = texture(lightmapTexture, texCoordsLightmap).rgb;
-                outputColor = texture(cubeTexture, texCoords) * vec4(lightColor, 1.0);
+                textureColor.rgb *= lightColor;
+                
+                textureColor.rgb = pow(textureColor.rgb, vec3(1.0/2.2));
+                
+                outputColor = textureColor;
             }
             """;
 

@@ -24,7 +24,7 @@
  *
  * For more information, please refer to <https://unlicense.org>
  */
-package cientistavuador.bakedlightingexperiment.cube;
+package cientistavuador.bakedlightingexperiment.cube.light.directional;
 
 import cientistavuador.bakedlightingexperiment.util.ProgramCompiler;
 import java.nio.FloatBuffer;
@@ -37,7 +37,7 @@ import org.lwjgl.system.MemoryStack;
  *
  * @author Cien
  */
-public class CubeLightingProgram {
+public class DirectionalLightProgram {
     public static final String VERTEX_SHADER
             = 
             """
@@ -61,7 +61,7 @@ public class CubeLightingProgram {
                 pos.xyz /= pos.w;
                 position = pos.xyz;
                 
-                texCoords = vertexLightmap;
+                texCoords = (vertexLightmapPosition + 1.0) / 2.0;
                 normal = normalize(normalModel * vertexNormal);
                 
                 gl_Position = vec4(vertexLightmapPosition, 1.0, 1.0);
@@ -74,6 +74,8 @@ public class CubeLightingProgram {
             #version 330 core
             
             uniform sampler2D lightmapTexture;
+            uniform sampler2DShadow shadowMap;
+            uniform mat4 shadowMapProjectionView;
             
             uniform vec3 lightDirection;
             uniform vec3 lightAmbient;
@@ -86,12 +88,28 @@ public class CubeLightingProgram {
             layout (location = 0) out vec4 outputColor;
             
             void main() {
+                vec2 shadowMapTexelSize = 1.0 / vec2(textureSize(shadowMap, 0));
+                int pcf = 3;
+                
+                vec4 mapCoords = shadowMapProjectionView * vec4(position, 1.0);
+                mapCoords /= mapCoords.w;
+                mapCoords.xyz = (mapCoords.xyz + 1.0) / 2.0;
+                
+                float shadowValue = 0.0;
+                for (int x = -pcf; x <= pcf; x++) {
+                    for (int y = -pcf; y <= pcf; y++) {
+                        shadowValue += texture(shadowMap, vec3(mapCoords.xy + (vec2(float(x), float(y)) * shadowMapTexelSize), mapCoords.z - 0.0002));
+                    }
+                }
+                shadowValue /= pow((float(pcf) * 2.0) + 1.0, 2.0);
+                
                 vec3 resultColor = vec3(0.0);
                 
-                resultColor += lightDiffuse * max(dot(normal, -lightDirection), 0.0);
+                resultColor += lightDiffuse * max(dot(normal, -lightDirection), 0.0) * shadowValue;
                 resultColor += lightAmbient;
                 
-                outputColor = vec4(resultColor, 1.0);
+                ivec2 lightmapPixel = ivec2(floor(texCoords * vec2(textureSize(lightmapTexture, 0))));
+                outputColor = vec4(resultColor + texelFetch(lightmapTexture, lightmapPixel, 0).rgb, 1.0);
             }
             """;
 
@@ -103,6 +121,9 @@ public class CubeLightingProgram {
     public static final int LIGHT_DIRECTION_INDEX = glGetUniformLocation(SHADER_PROGRAM, "lightDirection");
     public static final int LIGHT_AMBIENT_INDEX = glGetUniformLocation(SHADER_PROGRAM, "lightAmbient");
     public static final int LIGHT_DIFFUSE_INDEX = glGetUniformLocation(SHADER_PROGRAM, "lightDiffuse");
+    
+    public static final int SHADOW_MAP_INDEX = glGetUniformLocation(SHADER_PROGRAM, "shadowMap");
+    public static final int SHADOW_MAP_PROJECTION_VIEW_INDEX = glGetUniformLocation(SHADER_PROGRAM, "shadowMapProjectionView");
     
     private static void sendMatrix(int location, Matrix4fc matrix) {
         try (MemoryStack stack = MemoryStack.stackPush()) {
@@ -131,9 +152,14 @@ public class CubeLightingProgram {
         glUniform3f(LIGHT_DIRECTION_INDEX, light.getDirection().x(), light.getDirection().y(), light.getDirection().z());
         glUniform3f(LIGHT_AMBIENT_INDEX, light.getAmbientColor().x(), light.getAmbientColor().y(), light.getAmbientColor().z());
         glUniform3f(LIGHT_DIFFUSE_INDEX, light.getDiffuseColor().x(), light.getDiffuseColor().y(), light.getDiffuseColor().z());
+        
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, light.getShadowMap());
+        glUniform1i(SHADOW_MAP_INDEX, 1);
+        sendMatrix(SHADOW_MAP_PROJECTION_VIEW_INDEX, light.getCamera().getProjectionViewFloat());
     }
     
-    private CubeLightingProgram() {
+    private DirectionalLightProgram() {
 
     }
 }

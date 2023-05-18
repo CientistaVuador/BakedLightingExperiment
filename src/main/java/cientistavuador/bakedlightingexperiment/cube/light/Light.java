@@ -24,35 +24,19 @@
  *
  * For more information, please refer to <https://unlicense.org>
  */
-package cientistavuador.bakedlightingexperiment.cube;
+package cientistavuador.bakedlightingexperiment.cube.light;
 
-import org.joml.Vector3f;
+import cientistavuador.bakedlightingexperiment.cube.Cube;
+import java.util.List;
 
 /**
  *
  * @author Cien
  */
-public class DirectionalLight {
-    
-    
-    private final Vector3f direction = new Vector3f(-0.5f, -1f, 0.5f).normalize();
-    private final Vector3f diffuseColor = new Vector3f(255f / 255f, 253f / 255f, 242f / 255f).mul(1.0f);
-    private final Vector3f ambientColor = new Vector3f(255f / 255f, 253f / 255f, 242f / 255f).mul(0.3f);
-    
-    public DirectionalLight() {
-        
-    }
-
-    public Vector3f getDirection() {
-        return direction;
-    }
-
-    public Vector3f getAmbientColor() {
-        return ambientColor;
-    }
-
-    public Vector3f getDiffuseColor() {
-        return diffuseColor;
-    }
-    
+public interface Light {
+    public boolean isEnabled();
+    public void setEnabled(boolean enabled);
+    public void render(Cube cube, int lightmap);
+    public void renderShadowmap(List<Cube> cubes);
+    public void freeShadowmap();
 }

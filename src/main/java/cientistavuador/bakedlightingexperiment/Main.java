@@ -31,6 +31,7 @@ import cientistavuador.bakedlightingexperiment.text.GLFonts;
 import cientistavuador.bakedlightingexperiment.ubo.UBOBindingPoints;
 import java.io.PrintStream;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import org.joml.Vector3f;
 import static org.lwjgl.glfw.GLFW.*;
 import org.lwjgl.glfw.GLFWFramebufferSizeCallbackI;
 import org.lwjgl.opengl.GL;
@@ -105,6 +106,7 @@ public class Main {
     public static int NUMBER_OF_DRAWCALLS = 0;
     public static int NUMBER_OF_VERTICES = 0;
     public static final ConcurrentLinkedQueue<Runnable> MAIN_TASKS = new ConcurrentLinkedQueue<>();
+    public static final Vector3f DEFAULT_CLEAR_COLOR = new Vector3f(0.2f, 0.4f, 0.6f);
     private static GLDebugMessageCallback DEBUG_CALLBACK = null;
 
     private static String debugSource(int source) {
@@ -239,7 +241,7 @@ public class Main {
         }
         glEnable(GL_BLEND);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        glClearColor(0.2f, 0.4f, 0.6f, 1.0f);
+        glClearColor(DEFAULT_CLEAR_COLOR.x(), DEFAULT_CLEAR_COLOR.y(), DEFAULT_CLEAR_COLOR.z(), 1.0f);
         glEnable(GL_DEPTH_TEST);
         glClearDepth(1f);
         glDepthFunc(GL_LEQUAL);

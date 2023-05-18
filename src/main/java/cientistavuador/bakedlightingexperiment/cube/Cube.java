@@ -27,7 +27,10 @@
 package cientistavuador.bakedlightingexperiment.cube;
 
 import cientistavuador.bakedlightingexperiment.Main;
+import static cientistavuador.bakedlightingexperiment.Main.DEFAULT_CLEAR_COLOR;
+import cientistavuador.bakedlightingexperiment.cube.light.Light;
 import java.nio.ByteBuffer;
+import java.util.List;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
@@ -44,7 +47,6 @@ public class Cube {
     public static final int NUMBER_OF_INDICES = 3 * 2 * 6;
     public static final int CUBE_TEXTURE = CubeTexture.CUBE_TEXTURE;
     public static final int SHADER_PROGRAM = CubeProgram.SHADER_PROGRAM;
-    public static final int SHADER_PROGRAM_LIGHTING = CubeLightingProgram.SHADER_PROGRAM;
     public static final int VAO = CubeVAO.VAO;
     
     public static void init() {
@@ -77,7 +79,7 @@ public class Cube {
         glTexImage2D(
                 GL_TEXTURE_2D,
                 0,
-                GL_RGB8,
+                GL_R11F_G11F_B10F,
                 width,
                 height,
                 0,
@@ -110,7 +112,7 @@ public class Cube {
         return lightmap;
     }
     
-    public void updateLightmap(DirectionalLight sun) {
+    public void updateLightmap(List<Light> lights) {
         int width = CubeVAO.getLightmapWidth();
         int height = CubeVAO.getLightmapHeight();
         
@@ -126,7 +128,7 @@ public class Cube {
         glTexImage2D(
                 GL_TEXTURE_2D,
                 0,
-                GL_RGB8,
+                GL_R11F_G11F_B10F,
                 width,
                 height,
                 0,
@@ -142,7 +144,7 @@ public class Cube {
         glTexImage2D(
                 GL_TEXTURE_2D,
                 0,
-                GL_RGB8,
+                GL_R11F_G11F_B10F,
                 width,
                 height,
                 0,
@@ -175,28 +177,36 @@ public class Cube {
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
         
+        int readLightmap = auxTexture;
+        int drawLightmap = this.lightmap;
+        int attachment = GL_COLOR_ATTACHMENT0;
         glDrawBuffers(new int[] {GL_COLOR_ATTACHMENT0});
         
-        glUseProgram(CubeLightingProgram.SHADER_PROGRAM);
-        glBindVertexArray(Cube.VAO);
-        
-        CubeLightingProgram.sendUniforms(auxTexture, this.model, this.normalModel, sun);
-        glDrawElements(GL_TRIANGLES, Cube.NUMBER_OF_INDICES, GL_UNSIGNED_INT, 0);
-        
-        Main.NUMBER_OF_DRAWCALLS++;
-        Main.NUMBER_OF_VERTICES += Cube.NUMBER_OF_INDICES;
-        
-        glBindVertexArray(0);
-        glUseProgram(0);
+        for (Light l:lights) {
+            l.render(this, readLightmap);
+            
+            int a = readLightmap;
+            int b = drawLightmap;
+            readLightmap = b;
+            drawLightmap = a;
+            
+            if (attachment == GL_COLOR_ATTACHMENT0) {
+                attachment = GL_COLOR_ATTACHMENT1;
+            } else {
+                attachment = GL_COLOR_ATTACHMENT0;
+            }
+            
+            glDrawBuffers(new int[] {attachment});
+        }
         
         glViewport(0, 0, Main.WIDTH, Main.HEIGHT);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         
-        glClearColor(0.2f, 0.4f, 0.6f, 1.0f);
+        glClearColor(DEFAULT_CLEAR_COLOR.x(), DEFAULT_CLEAR_COLOR.y(), DEFAULT_CLEAR_COLOR.z(), 1.0f);
         
         glDeleteFramebuffers(fbo);
-        glDeleteTextures(auxTexture);
-        this.lightmap = this.lightmap;
+        glDeleteTextures(drawLightmap);
+        this.lightmap = readLightmap;
     }
     
     public void free() {
