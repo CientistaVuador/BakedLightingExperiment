@@ -183,6 +183,10 @@ public class Cube {
         glDrawBuffers(new int[] {GL_COLOR_ATTACHMENT0});
         
         for (Light l:lights) {
+            if (!l.isEnabled()) {
+                continue;
+            }
+            
             l.render(this, readLightmap);
             
             int a = readLightmap;

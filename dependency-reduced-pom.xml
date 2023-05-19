@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>cientistavuador</groupId>
   <artifactId>BakedLightingExperiment</artifactId>
-  <version>0.7</version>
+  <version>0.8</version>
   <build>
     <resources>
       <resource>

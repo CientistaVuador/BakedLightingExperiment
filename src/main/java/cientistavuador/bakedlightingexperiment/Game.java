@@ -33,16 +33,23 @@ import cientistavuador.bakedlightingexperiment.cube.CubeProgram;
 import cientistavuador.bakedlightingexperiment.cube.CubeVAO;
 import cientistavuador.bakedlightingexperiment.cube.light.Light;
 import cientistavuador.bakedlightingexperiment.cube.light.directional.DirectionalLight;
+import cientistavuador.bakedlightingexperiment.cube.light.point.PointLight;
+import cientistavuador.bakedlightingexperiment.cube.light.spot.SpotLight;
 import cientistavuador.bakedlightingexperiment.ubo.CameraUBO;
 import cientistavuador.bakedlightingexperiment.ubo.UBOBindingPoints;
 import cientistavuador.bakedlightingexperiment.debug.AabRender;
 import cientistavuador.bakedlightingexperiment.text.GLFontRenderer;
 import cientistavuador.bakedlightingexperiment.text.GLFontSpecification;
 import cientistavuador.bakedlightingexperiment.text.GLFontSpecifications;
+import java.awt.Color;
+import java.awt.Toolkit;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.JColorChooser;
+import javax.swing.colorchooser.ColorSelectionModel;
 import org.joml.Matrix4f;
 import org.joml.Vector3dc;
+import org.joml.Vector3f;
 import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL33C.*;
 
@@ -62,9 +69,11 @@ public class Game {
     private final DirectionalLight sun = new DirectionalLight();
     private final List<Cube> cubes = new ArrayList<>();
     private final List<Light> lights = new ArrayList<>();
-    private float[] colors = {1f, 1f, 1f};
+    private final float[] colors = {1f, 1f, 1f};
     private int currentComponent = 0;
     private boolean textEnabled = true;
+    private boolean colorChooserOpen = false;
+    private boolean whereIsIt = false;
 
     private Game() {
 
@@ -144,16 +153,21 @@ public class Game {
                                 .append("\tAlt - Wander\n")
                                 .append("\tCtrl - Unlock/Lock mouse\n")
                                 .append("\tF - Spawn Cube\n")
-                                .append("\tR - Remove Last Cube\n")
-                                .append("\tL - Update Lightmap\n")
+                                .append("\tR - Remove Last Cube").append(" [").append(this.cubes.size() - 1).append(" Cubes]\n")
+                                .append("\tL - Update Lightmap").append(" [").append(this.lights.size() - 1).append(" Lights]\n")
                                 .append("\tX - Enable/Disable Sun. [").append(sun.isEnabled() ? "Enabled" : "Disabled").append("]\n")
-                                .append("\tShift + Left Click - Place Spotlight. [Not Implemented]\n")
-                                .append("\tShift + Right Click - Place Point Light. [Not Implemented]\n")
+                                .append("\tShift + Left Click - Place Spotlight.\n")
+                                .append("\tShift + Right Click - Place Point Light.\n")
                                 .append("\tB - Remove Last Light.\n")
                                 .append("\tT - Hide This Wall of Text.\n")
                                 .toString(),
                         "\nLight Color\n",
-                        "\tO - Next Component\n\tP - Increase/Decrease Component\n\t\t" + componentSelected + "\n\t\t[" + formatColor(this.colors[0]) + "] [" + formatColor(this.colors[1]) + "] [" + formatColor(this.colors[2]) + "]\n",
+                        new StringBuilder()
+                                .append("\tC - Open Color Chooser").append(this.whereIsIt ? " (BEHIND THE WINDOW!)" : "").append("\n")
+                                .append("\tO - Next Component\n")
+                                .append("\tP - Increase/Decrease Component\n").append("\t\t").append(componentSelected).append("\n\t\t[").append(formatColor(this.colors[0])).append("] [").append(formatColor(this.colors[1])).append("] [").append(formatColor(this.colors[2])).append("]\n")
+                                .toString()
+                        ,
                         "\t\t[##########]"
                     }
             );
@@ -205,15 +219,16 @@ public class Game {
         }
         if (key == GLFW_KEY_L && action == GLFW_PRESS) {
             for (Light l : lights) {
-                l.renderShadowmap(cubes);
+                if (!l.isEnabled()) {
+                    continue;
+                }
+                l.renderShadowMap(cubes);
             }
             for (Cube c : cubes) {
-                if (c != null) {
-                    c.updateLightmap(lights);
-                }
+                c.updateLightmap(lights);
             }
             for (Light l : lights) {
-                l.freeShadowmap();
+                l.freeShadowMap();
             }
         }
         if (key == GLFW_KEY_X && action == GLFW_PRESS) {
@@ -229,8 +244,8 @@ public class Game {
         }
         if (key == GLFW_KEY_B && action == GLFW_PRESS) {
             if (this.lights.size() > 1) {
-                Light light = this.lights.remove(this.lights.size()-1);
-                light.freeShadowmap();
+                Light light = this.lights.remove(this.lights.size() - 1);
+                light.freeShadowMap();
             }
         }
         if (key == GLFW_KEY_O && action == GLFW_PRESS) {
@@ -248,9 +263,53 @@ public class Game {
         if (key == GLFW_KEY_T && action == GLFW_PRESS) {
             this.textEnabled = !this.textEnabled;
         }
+        if (key == GLFW_KEY_C && action == GLFW_PRESS) {
+            if (!this.colorChooserOpen) {
+                this.colorChooserOpen = true;
+                Thread e = new Thread(() -> {
+                    Color chosen = JColorChooser.showDialog(null, "RGB", Color.WHITE, false);
+                    if (chosen != null) {
+                        Main.MAIN_TASKS.add(() -> {
+                            float r = chosen.getRed() / 255f;
+                            float g = chosen.getGreen() / 255f;
+                            float b = chosen.getBlue() / 255f;
+                            this.colors[0] = r;
+                            this.colors[1] = g;
+                            this.colors[2] = b;
+                            this.colorChooserOpen = false;
+                            this.whereIsIt = false;
+                        });
+                    } else {
+                        Main.MAIN_TASKS.add(() -> {
+                            this.colorChooserOpen = false;
+                            this.whereIsIt = false;
+                        });
+                    }
+                });
+                e.setDaemon(true);
+                e.start();
+            } else {
+                Toolkit.getDefaultToolkit().beep();
+                this.whereIsIt = true;
+            }
+        }
     }
 
     public void mouseCallback(long window, int button, int action, int mods) {
-        
+        if (button == GLFW_MOUSE_BUTTON_RIGHT && (mods & GLFW_MOD_SHIFT) != 0 && action == GLFW_PRESS) {
+            PointLight light = new PointLight(
+                    new Vector3f().set(this.camera.getPosition()),
+                    new Vector3f(this.colors)
+            );
+            this.lights.add(light);
+        }
+        if (button == GLFW_MOUSE_BUTTON_LEFT && (mods & GLFW_MOD_SHIFT) != 0 && action == GLFW_PRESS) {
+            SpotLight light = new SpotLight(
+                    new Vector3f().set(this.camera.getPosition()),
+                    new Vector3f(this.camera.getFront()),
+                    new Vector3f(this.colors)
+            );
+            this.lights.add(light);
+        }
     }
 }

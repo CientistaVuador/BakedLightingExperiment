@@ -28,15 +28,19 @@ package cientistavuador.bakedlightingexperiment.cube.light;
 
 import cientistavuador.bakedlightingexperiment.cube.Cube;
 import java.util.List;
+import org.joml.Vector3f;
 
 /**
  *
  * @author Cien
  */
 public interface Light {
+    public Vector3f getAmbientColor();
+    public Vector3f getDiffuseColor();
     public boolean isEnabled();
     public void setEnabled(boolean enabled);
+    public int getShadowMap();
     public void render(Cube cube, int lightmap);
-    public void renderShadowmap(List<Cube> cubes);
-    public void freeShadowmap();
+    public void renderShadowMap(List<Cube> cubes);
+    public void freeShadowMap();
 }

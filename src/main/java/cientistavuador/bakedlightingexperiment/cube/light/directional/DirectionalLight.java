@@ -82,30 +82,29 @@ public class DirectionalLight implements Light {
         return direction;
     }
 
+    @Override
     public Vector3f getAmbientColor() {
         return ambientColor;
     }
 
+    @Override
     public Vector3f getDiffuseColor() {
         return diffuseColor;
     }
 
+    @Override
     public int getShadowMap() {
         return shadowMap;
     }
     
     @Override
-    public void freeShadowmap() {
+    public void freeShadowMap() {
         glDeleteTextures(this.shadowMap);
         this.shadowMap = 0;
     }
     
     @Override
     public void render(Cube cube, int lightmap) {
-        if (!isEnabled()) {
-            return;
-        }
-        
         glUseProgram(DirectionalLightProgram.SHADER_PROGRAM);
         glBindVertexArray(Cube.VAO);
         
@@ -120,14 +119,10 @@ public class DirectionalLight implements Light {
     }
     
     @Override
-    public void renderShadowmap(List<Cube> cubes) {
-        if (!isEnabled()) {
-            return;
-        }
-        
+    public void renderShadowMap(List<Cube> cubes) {
         this.camera.setFront(this.direction);
         
-        freeShadowmap();
+        freeShadowMap();
         
         glActiveTexture(GL_TEXTURE0);
         
