@@ -26,6 +26,7 @@
  */
 package cientistavuador.bakedlightingexperiment.cube.light.point;
 
+import cientistavuador.bakedlightingexperiment.cube.light.ShadowCubeMapFBO;
 import cientistavuador.bakedlightingexperiment.util.ProgramCompiler;
 import java.nio.FloatBuffer;
 import org.joml.Matrix3fc;
@@ -79,6 +80,10 @@ public class PointLightProgram {
             uniform vec3 lightAmbient;
             uniform vec3 lightDiffuse;
             
+            uniform samplerCubeShadow shadowCubeMap;
+            uniform float nearPlane;
+            uniform float farPlane;
+            
             in vec3 position;
             in vec2 texCoords;
             in vec3 normal;
@@ -92,7 +97,23 @@ public class PointLightProgram {
                 float distance = length(lightPosition - position);
                 float attenuation = 1.0 / (distance*distance);
                 
-                resultColor += lightDiffuse * max(dot(normal, lightDir), 0.0) * attenuation;
+                float offset = 0.0025;
+                int pcf = 2;
+                
+                float zLinear = (length(lightPosition - position) - nearPlane) / (farPlane - nearPlane);
+                vec3 shadowDirection = normalize(position - lightPosition);
+                
+                float shadowValue = 0.0;
+                for (int x = -pcf; x <= pcf; x++) {
+                    for (int y = -pcf; y <= pcf; y++) {
+                        for (int z = -pcf; z <= pcf; z++) {
+                            shadowValue += texture(shadowCubeMap, vec4(normalize(shadowDirection + (vec3(float(x), float(y), float(z)) * offset)), zLinear - 0.00006));
+                        }
+                    }
+                }
+                shadowValue /= pow((float(pcf) * 2.0) + 1.0, 3.0);
+                
+                resultColor += lightDiffuse * max(dot(normal, lightDir), 0.0) * attenuation * shadowValue;
                 resultColor += lightAmbient * attenuation;
                 
                 ivec2 lightmapPixel = ivec2(floor(texCoords * vec2(textureSize(lightmapTexture, 0))));
@@ -108,6 +129,10 @@ public class PointLightProgram {
     public static final int LIGHT_POSITION_INDEX = glGetUniformLocation(SHADER_PROGRAM, "lightPosition");
     public static final int LIGHT_AMBIENT_INDEX = glGetUniformLocation(SHADER_PROGRAM, "lightAmbient");
     public static final int LIGHT_DIFFUSE_INDEX = glGetUniformLocation(SHADER_PROGRAM, "lightDiffuse");
+    
+    public static final int SHADOWMAP_INDEX = glGetUniformLocation(SHADER_PROGRAM, "shadowCubeMap");
+    public static final int NEAR_PLANE_INDEX = glGetUniformLocation(SHADER_PROGRAM, "nearPlane");
+    public static final int FAR_PLANE_INDEX = glGetUniformLocation(SHADER_PROGRAM, "farPlane");
     
     private static void sendMatrix(int location, Matrix4fc matrix) {
         try (MemoryStack stack = MemoryStack.stackPush()) {
@@ -136,6 +161,13 @@ public class PointLightProgram {
         glUniform3f(LIGHT_POSITION_INDEX, light.getPosition().x(), light.getPosition().y(), light.getPosition().z());
         glUniform3f(LIGHT_AMBIENT_INDEX, light.getAmbientColor().x(), light.getAmbientColor().y(), light.getAmbientColor().z());
         glUniform3f(LIGHT_DIFFUSE_INDEX, light.getDiffuseColor().x(), light.getDiffuseColor().y(), light.getDiffuseColor().z());
+        
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, ShadowCubeMapFBO.shadowCubeMap());
+        glUniform1i(SHADOWMAP_INDEX, 1);
+        
+        glUniform1f(NEAR_PLANE_INDEX, PointLight.NEAR_PLANE);
+        glUniform1f(FAR_PLANE_INDEX, PointLight.FAR_PLANE);
     }
     
     private PointLightProgram() {

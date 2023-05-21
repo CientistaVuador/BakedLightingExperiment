@@ -34,7 +34,7 @@ import org.joml.Matrix4fc;
  *
  * @author Cien
  */
-public class DirectionalLightShadowShader {
+public class DirectionalLightShadowProgram {
     
     public static final String VERTEX_SHADER = 
             """
@@ -70,7 +70,7 @@ public class DirectionalLightShadowShader {
         BetterUniformSetter.uniformMatrix4fv(UNIFORMS.locationOf("model"), model);
     }
     
-    private DirectionalLightShadowShader() {
+    private DirectionalLightShadowProgram() {
         
     }
 }

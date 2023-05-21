@@ -30,7 +30,6 @@ import cientistavuador.bakedlightingexperiment.Main;
 import static cientistavuador.bakedlightingexperiment.Main.DEFAULT_CLEAR_COLOR;
 import cientistavuador.bakedlightingexperiment.cube.light.Light;
 import java.nio.ByteBuffer;
-import java.util.List;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
 import org.joml.Matrix4fc;
@@ -42,39 +41,47 @@ import org.lwjgl.system.MemoryUtil;
  * @author Cien
  */
 public class Cube {
-    
+
     public static final int VERTEX_SIZE_ELEMENTS = 3 + 3 + 2 + 2 + 2;
     public static final int NUMBER_OF_INDICES = 3 * 2 * 6;
     public static final int CUBE_TEXTURE = CubeTexture.CUBE_TEXTURE;
     public static final int SHADER_PROGRAM = CubeProgram.SHADER_PROGRAM;
     public static final int VAO = CubeVAO.VAO;
-    
+
     public static void init() {
-        
+
     }
-    
+
     private final Matrix4f model = new Matrix4f();
     private final Matrix3f normalModel = new Matrix3f();
     private final boolean groundCube;
-    private int lightmap = glGenTextures();
+    private final int fbo = glGenFramebuffers();
+    private final int lightmap = glGenTextures();
+    private final int auxTexture = glGenTextures();
     
+    private int readLightmap = this.lightmap;
+    private int drawLightmap = this.auxTexture;
+    private int attachment = GL_COLOR_ATTACHMENT1;
+
     public Cube(Matrix4fc model, boolean groundCube) {
         this.groundCube = groundCube;
         this.model.set(model);
         this.normalModel.set(new Matrix4f(model).invert().transpose());
-        
+
         int width = CubeVAO.getLightmapWidth();
         int height = CubeVAO.getLightmapHeight();
-        
+
         if (groundCube) {
             width = CubeVAO.GROUND_CUBE_WIDTH;
             height = CubeVAO.GROUND_CUBE_HEIGHT;
         }
-        
-        ByteBuffer mem = MemoryUtil.memCalloc((width*height) * 3);
+
+        ByteBuffer mem = MemoryUtil.memCalloc((width * height) * 3);
         MemoryUtil.memSet(mem, 255);
-        
+
         glActiveTexture(GL_TEXTURE0);
+
+        //create lightmap
         glBindTexture(GL_TEXTURE_2D, this.lightmap);
         glTexImage2D(
                 GL_TEXTURE_2D,
@@ -92,55 +99,11 @@ public class Cube {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glBindTexture(GL_TEXTURE_2D, 0);
-        
+
         MemoryUtil.memFree(mem);
-    }
 
-    public boolean isGroundCube() {
-        return groundCube;
-    }
-    
-    public Matrix4f getModel() {
-        return model;
-    }
-
-    public Matrix3f getNormalModel() {
-        return normalModel;
-    }
-
-    public int getLightmap() {
-        return lightmap;
-    }
-    
-    public void updateLightmap(List<Light> lights) {
-        int width = CubeVAO.getLightmapWidth();
-        int height = CubeVAO.getLightmapHeight();
-        
-        if (isGroundCube()) {
-            width = CubeVAO.GROUND_CUBE_WIDTH;
-            height = CubeVAO.GROUND_CUBE_HEIGHT;
-        }
-        
-        glActiveTexture(GL_TEXTURE0);
-        
-        //clear current texture
-        glBindTexture(GL_TEXTURE_2D, this.lightmap);
-        glTexImage2D(
-                GL_TEXTURE_2D,
-                0,
-                GL_R11F_G11F_B10F,
-                width,
-                height,
-                0,
-                GL_RGB,
-                GL_UNSIGNED_BYTE,
-                0
-        );
-        glBindTexture(GL_TEXTURE_2D, 0);
-        
         //create auxTexture
-        int auxTexture = glGenTextures();
-        glBindTexture(GL_TEXTURE_2D, auxTexture);
+        glBindTexture(GL_TEXTURE_2D, this.auxTexture);
         glTexImage2D(
                 GL_TEXTURE_2D,
                 0,
@@ -157,64 +120,91 @@ public class Cube {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glBindTexture(GL_TEXTURE_2D, 0);
-        
-        //create fbo, set main and aux texture as targets, no depth buffer required.
-        int fbo = glGenFramebuffers();
+
+        //create fbo
         glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-        
+
         glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, this.lightmap, 0);
-        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, auxTexture, 0);
-        
-        glDrawBuffers(new int[] {GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1});
-        glReadBuffer(GL_NONE);
+        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1, this.auxTexture, 0);
         
         if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
             throw new RuntimeException("Could not create FBO!");
         }
         
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    public boolean isGroundCube() {
+        return groundCube;
+    }
+
+    public Matrix4f getModel() {
+        return model;
+    }
+
+    public Matrix3f getNormalModel() {
+        return normalModel;
+    }
+
+    public int getLightmap() {
+        return this.readLightmap;
+    }
+
+    public void clearLightmap() {
+        int width = CubeVAO.getLightmapWidth();
+        int height = CubeVAO.getLightmapHeight();
+
+        if (isGroundCube()) {
+            width = CubeVAO.GROUND_CUBE_WIDTH;
+            height = CubeVAO.GROUND_CUBE_HEIGHT;
+        }
+
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this.fbo);
+        glDrawBuffers(new int[]{GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1});
+
         glViewport(0, 0, width, height);
-        
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
         glClear(GL_COLOR_BUFFER_BIT);
-        
-        int readLightmap = auxTexture;
-        int drawLightmap = this.lightmap;
-        int attachment = GL_COLOR_ATTACHMENT0;
-        glDrawBuffers(new int[] {GL_COLOR_ATTACHMENT0});
-        
-        for (Light l:lights) {
-            if (!l.isEnabled()) {
-                continue;
-            }
-            
-            l.render(this, readLightmap);
-            
-            int a = readLightmap;
-            int b = drawLightmap;
-            readLightmap = b;
-            drawLightmap = a;
-            
-            if (attachment == GL_COLOR_ATTACHMENT0) {
-                attachment = GL_COLOR_ATTACHMENT1;
-            } else {
-                attachment = GL_COLOR_ATTACHMENT0;
-            }
-            
-            glDrawBuffers(new int[] {attachment});
+
+        glClearColor(DEFAULT_CLEAR_COLOR.x(), DEFAULT_CLEAR_COLOR.y(), DEFAULT_CLEAR_COLOR.z(), 1.0f);
+        glViewport(0, 0, Main.WIDTH, Main.HEIGHT);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    }
+
+    public void updateLightmap(Light light) {
+        if (!light.isEnabled()) {
+            return;
         }
         
+        int width = CubeVAO.getLightmapWidth();
+        int height = CubeVAO.getLightmapHeight();
+
+        if (isGroundCube()) {
+            width = CubeVAO.GROUND_CUBE_WIDTH;
+            height = CubeVAO.GROUND_CUBE_HEIGHT;
+        }
+
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, this.fbo);
+        glDrawBuffers(new int[]{this.attachment});
+        glViewport(0, 0, width, height);
+        
+        light.render(this, this.readLightmap);
+
+        int a = this.readLightmap;
+        int b = this.drawLightmap;
+        this.readLightmap = b;
+        this.drawLightmap = a;
+        this.attachment = (this.attachment == GL_COLOR_ATTACHMENT0 ? GL_COLOR_ATTACHMENT1 : GL_COLOR_ATTACHMENT0);
+        
         glViewport(0, 0, Main.WIDTH, Main.HEIGHT);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        
-        glClearColor(DEFAULT_CLEAR_COLOR.x(), DEFAULT_CLEAR_COLOR.y(), DEFAULT_CLEAR_COLOR.z(), 1.0f);
-        
-        glDeleteFramebuffers(fbo);
-        glDeleteTextures(drawLightmap);
-        this.lightmap = readLightmap;
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     }
-    
+
     public void free() {
+        glDeleteFramebuffers(this.fbo);
+        glDeleteTextures(this.auxTexture);
         glDeleteTextures(this.lightmap);
     }
-    
+
 }

@@ -27,6 +27,8 @@
 package cientistavuador.bakedlightingexperiment;
 
 import cientistavuador.bakedlightingexperiment.cube.Cube;
+import cientistavuador.bakedlightingexperiment.cube.light.ShadowCubeMapFBO;
+import cientistavuador.bakedlightingexperiment.cube.light.ShadowMap2DFBO;
 import cientistavuador.bakedlightingexperiment.text.GLFonts;
 import cientistavuador.bakedlightingexperiment.ubo.UBOBindingPoints;
 import java.io.PrintStream;
@@ -259,6 +261,8 @@ public class Main {
         
         Main.checkGLError();
         
+        ShadowCubeMapFBO.init(); //static initialize
+        ShadowMap2DFBO.init(); //static initialize
         GLFonts.init(); //static initialize
         Cube.init(); //static initialize
         Game.get(); //static initialize

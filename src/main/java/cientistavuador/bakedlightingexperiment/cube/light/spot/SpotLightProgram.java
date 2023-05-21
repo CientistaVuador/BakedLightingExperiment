@@ -26,7 +26,7 @@
  */
 package cientistavuador.bakedlightingexperiment.cube.light.spot;
 
-import cientistavuador.bakedlightingexperiment.cube.light.point.PointLight;
+import cientistavuador.bakedlightingexperiment.cube.light.ShadowMap2DFBO;
 import cientistavuador.bakedlightingexperiment.util.ProgramCompiler;
 import java.nio.FloatBuffer;
 import org.joml.Matrix3fc;
@@ -83,6 +83,11 @@ public class SpotLightProgram {
             uniform float lightCutoff;
             uniform float lightOuterCutoff;
             
+            uniform sampler2DShadow shadowMap;
+            uniform mat4 shadowMapProjectionView;
+            uniform float nearPlane;
+            uniform float farPlane;
+            
             in vec3 position;
             in vec2 texCoords;
             in vec3 normal;
@@ -102,7 +107,24 @@ public class SpotLightProgram {
                 float epsilon = lightCutoff - lightOuterCutoff;
                 float intensity = clamp((theta - lightOuterCutoff) / epsilon, 0.0, 1.0);
                 
-                resultColor += lightDiffuse * diff * attenuation * intensity;
+                float zLinear = (length(lightPosition - position) - nearPlane) / (farPlane - nearPlane);
+                
+                vec2 shadowMapTexelSize = 1.0 / vec2(textureSize(shadowMap, 0));
+                int pcf = 8;
+                
+                vec4 mapCoords = shadowMapProjectionView * vec4(position, 1.0);
+                mapCoords /= mapCoords.w;
+                mapCoords.xyz = (mapCoords.xyz + 1.0) / 2.0;
+                
+                float shadowValue = 0.0;
+                for (int x = -pcf; x <= pcf; x++) {
+                    for (int y = -pcf; y <= pcf; y++) {
+                        shadowValue += texture(shadowMap, vec3(mapCoords.xy + (vec2(float(x), float(y)) * shadowMapTexelSize), zLinear - 0.00003));
+                    }
+                }
+                shadowValue /= pow((float(pcf) * 2.0) + 1.0, 2.0);
+                
+                resultColor += lightDiffuse * diff * attenuation * intensity * shadowValue;
                 resultColor += lightAmbient * attenuation;
                 
                 ivec2 lightmapPixel = ivec2(floor(texCoords * vec2(textureSize(lightmapTexture, 0))));
@@ -121,6 +143,11 @@ public class SpotLightProgram {
     public static final int LIGHT_DIFFUSE_INDEX = glGetUniformLocation(SHADER_PROGRAM, "lightDiffuse");
     public static final int LIGHT_CUTOFF_INDEX = glGetUniformLocation(SHADER_PROGRAM, "lightCutoff");
     public static final int LIGHT_OUTER_CUTOFF_INDEX = glGetUniformLocation(SHADER_PROGRAM, "lightOuterCutoff");
+    
+    public static final int SHADOWMAP_INDEX = glGetUniformLocation(SHADER_PROGRAM, "shadowMap");
+    public static final int SHADOWMAP_PROJECTIONVIEW_INDEX = glGetUniformLocation(SHADER_PROGRAM, "shadowMapProjectionView");
+    public static final int NEAR_PLANE_INDEX = glGetUniformLocation(SHADER_PROGRAM, "nearPlane");
+    public static final int FAR_PLANE_INDEX = glGetUniformLocation(SHADER_PROGRAM, "farPlane");
     
     private static void sendMatrix(int location, Matrix4fc matrix) {
         try (MemoryStack stack = MemoryStack.stackPush()) {
@@ -153,6 +180,14 @@ public class SpotLightProgram {
         
         glUniform1f(LIGHT_CUTOFF_INDEX, (float) Math.cos(Math.toRadians(light.getCutOff())));
         glUniform1f(LIGHT_OUTER_CUTOFF_INDEX, (float) Math.cos(Math.toRadians(light.getOuterCutOff())));
+        
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, ShadowMap2DFBO.shadowMap());
+        glUniform1i(SHADOWMAP_INDEX, 1);
+        sendMatrix(SHADOWMAP_PROJECTIONVIEW_INDEX, light.getProjectionView());
+        
+        glUniform1f(NEAR_PLANE_INDEX, SpotLight.NEAR_PLANE);
+        glUniform1f(FAR_PLANE_INDEX, SpotLight.FAR_PLANE);
     }
     
     private SpotLightProgram() {

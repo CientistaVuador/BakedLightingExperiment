@@ -39,8 +39,6 @@ public interface Light {
     public Vector3f getDiffuseColor();
     public boolean isEnabled();
     public void setEnabled(boolean enabled);
-    public int getShadowMap();
     public void render(Cube cube, int lightmap);
     public void renderShadowMap(List<Cube> cubes);
-    public void freeShadowMap();
 }

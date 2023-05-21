@@ -28,7 +28,9 @@ package cientistavuador.bakedlightingexperiment.cube.light.point;
 
 import cientistavuador.bakedlightingexperiment.Main;
 import cientistavuador.bakedlightingexperiment.cube.Cube;
+import cientistavuador.bakedlightingexperiment.cube.CubeVAO;
 import cientistavuador.bakedlightingexperiment.cube.light.Light;
+import cientistavuador.bakedlightingexperiment.cube.light.ShadowCubeMapFBO;
 import java.util.List;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
@@ -39,16 +41,19 @@ import static org.lwjgl.opengl.GL33C.*;
  * @author Cien
  */
 public class PointLight implements Light {
+
+    public static final float NEAR_PLANE = 0.01f;
+    public static final float FAR_PLANE = 1000f;
     
     private final Vector3f position;
     private final Vector3f diffuseColor;
     private final Vector3f ambientColor;
     private boolean enabled = true;
-    
+
     public PointLight(Vector3fc position, Vector3fc color) {
         this.position = new Vector3f(position);
-        this.diffuseColor = new Vector3f(color).mul(1.5f);
-        this.ambientColor = new Vector3f(color).mul(0.15f);
+        this.diffuseColor = new Vector3f(color).mul(4f);
+        this.ambientColor = new Vector3f(color).mul(0.65f);
     }
 
     public Vector3f getPosition() {
@@ -66,33 +71,52 @@ public class PointLight implements Light {
     }
 
     @Override
-    public int getShadowMap() {
-        return 0;
-    }
-    
-    @Override
-    public void freeShadowMap() {
-        
-    }
-    
-    @Override
     public void render(Cube cube, int lightmap) {
         glUseProgram(PointLightProgram.SHADER_PROGRAM);
         glBindVertexArray(Cube.VAO);
-        
+
         PointLightProgram.sendUniforms(lightmap, cube.getModel(), cube.getNormalModel(), this);
         glDrawElements(GL_TRIANGLES, Cube.NUMBER_OF_INDICES, GL_UNSIGNED_INT, 0);
-        
+
         Main.NUMBER_OF_DRAWCALLS++;
         Main.NUMBER_OF_VERTICES += Cube.NUMBER_OF_INDICES;
-        
+
         glBindVertexArray(0);
         glUseProgram(0);
     }
-    
+
     @Override
     public void renderShadowMap(List<Cube> cubes) {
-        
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, ShadowCubeMapFBO.fbo());
+        glViewport(0, 0, ShadowCubeMapFBO.size(), ShadowCubeMapFBO.size());
+
+        glClear(GL_DEPTH_BUFFER_BIT);
+        glUseProgram(PointLightShadowProgram.SHADER_PROGRAM);
+
+        PointLightShadowProgram.sendPerFrameUniforms(
+                NEAR_PLANE,
+                FAR_PLANE,
+                this.position.x(),
+                this.position.y(),
+                this.position.z()
+        );
+
+        for (Cube c : cubes) {
+            if (c.isGroundCube()) {
+                glBindVertexArray(CubeVAO.GROUND_CUBE_VAO);
+            } else {
+                glBindVertexArray(CubeVAO.VAO);
+            }
+            PointLightShadowProgram.sendPerDrawUniforms(c.getModel());
+
+            glDrawElements(GL_TRIANGLES, Cube.NUMBER_OF_INDICES, GL_UNSIGNED_INT, 0);
+            glBindVertexArray(0);
+        }
+
+        glUseProgram(0);
+        glViewport(0, 0, Main.WIDTH, Main.HEIGHT);
+
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     }
 
     @Override

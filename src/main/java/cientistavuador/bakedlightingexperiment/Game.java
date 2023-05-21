@@ -32,6 +32,7 @@ import cientistavuador.bakedlightingexperiment.cube.Cube;
 import cientistavuador.bakedlightingexperiment.cube.CubeProgram;
 import cientistavuador.bakedlightingexperiment.cube.CubeVAO;
 import cientistavuador.bakedlightingexperiment.cube.light.Light;
+import cientistavuador.bakedlightingexperiment.cube.light.ShadowMap2DFBO;
 import cientistavuador.bakedlightingexperiment.cube.light.directional.DirectionalLight;
 import cientistavuador.bakedlightingexperiment.cube.light.point.PointLight;
 import cientistavuador.bakedlightingexperiment.cube.light.spot.SpotLight;
@@ -166,9 +167,8 @@ public class Game {
                                 .append("\tC - Open Color Chooser").append(this.whereIsIt ? " (BEHIND THE WINDOW!)" : "").append("\n")
                                 .append("\tO - Next Component\n")
                                 .append("\tP - Increase/Decrease Component\n").append("\t\t").append(componentSelected).append("\n\t\t[").append(formatColor(this.colors[0])).append("] [").append(formatColor(this.colors[1])).append("] [").append(formatColor(this.colors[2])).append("]\n")
-                                .toString()
-                        ,
-                        "\t\t[##########]"
+                                .toString(),
+                         "\t\t[##########]"
                     }
             );
         }
@@ -218,17 +218,17 @@ public class Game {
             }
         }
         if (key == GLFW_KEY_L && action == GLFW_PRESS) {
-            for (Light l : lights) {
+            for (Cube c : this.cubes) {
+                c.clearLightmap();
+            }
+            for (Light l : this.lights) {
                 if (!l.isEnabled()) {
                     continue;
                 }
-                l.renderShadowMap(cubes);
-            }
-            for (Cube c : cubes) {
-                c.updateLightmap(lights);
-            }
-            for (Light l : lights) {
-                l.freeShadowMap();
+                l.renderShadowMap(this.cubes);
+                for (Cube c : this.cubes) {
+                    c.updateLightmap(l);
+                }
             }
         }
         if (key == GLFW_KEY_X && action == GLFW_PRESS) {
@@ -244,8 +244,7 @@ public class Game {
         }
         if (key == GLFW_KEY_B && action == GLFW_PRESS) {
             if (this.lights.size() > 1) {
-                Light light = this.lights.remove(this.lights.size() - 1);
-                light.freeShadowMap();
+                this.lights.remove(this.lights.size() - 1);
             }
         }
         if (key == GLFW_KEY_O && action == GLFW_PRESS) {

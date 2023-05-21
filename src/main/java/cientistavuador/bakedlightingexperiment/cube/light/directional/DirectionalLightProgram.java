@@ -26,6 +26,7 @@
  */
 package cientistavuador.bakedlightingexperiment.cube.light.directional;
 
+import cientistavuador.bakedlightingexperiment.cube.light.ShadowMap2DFBO;
 import cientistavuador.bakedlightingexperiment.util.ProgramCompiler;
 import java.nio.FloatBuffer;
 import org.joml.Matrix3fc;
@@ -154,7 +155,7 @@ public class DirectionalLightProgram {
         glUniform3f(LIGHT_DIFFUSE_INDEX, light.getDiffuseColor().x(), light.getDiffuseColor().y(), light.getDiffuseColor().z());
         
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, light.getShadowMap());
+        glBindTexture(GL_TEXTURE_2D, ShadowMap2DFBO.shadowMap());
         glUniform1i(SHADOW_MAP_INDEX, 1);
         sendMatrix(SHADOW_MAP_PROJECTION_VIEW_INDEX, light.getCamera().getProjectionViewFloat());
     }

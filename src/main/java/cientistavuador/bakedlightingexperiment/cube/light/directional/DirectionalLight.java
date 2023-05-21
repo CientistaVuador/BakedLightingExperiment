@@ -31,6 +31,7 @@ import cientistavuador.bakedlightingexperiment.camera.OrthoCamera;
 import cientistavuador.bakedlightingexperiment.cube.Cube;
 import cientistavuador.bakedlightingexperiment.cube.CubeVAO;
 import cientistavuador.bakedlightingexperiment.cube.light.Light;
+import cientistavuador.bakedlightingexperiment.cube.light.ShadowMap2DFBO;
 import java.util.List;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
@@ -43,15 +44,11 @@ import static org.lwjgl.opengl.GL33C.*;
  */
 public class DirectionalLight implements Light {
     
-    public static final int SHADOW_MAP_WIDTH = 8192;
-    public static final int SHADOW_MAP_HEIGHT = 8192;
-    
     private final OrthoCamera camera = new OrthoCamera();
     private final Vector3f direction = new Vector3f(-0.5f, -1f, 0.5f).normalize();
     private final Vector3f diffuseColor = new Vector3f(255f / 255f, 253f / 255f, 242f / 255f).mul(1.0f);
     private final Vector3f ambientColor = new Vector3f(255f / 255f, 253f / 255f, 242f / 255f).mul(0.3f);
     private boolean enabled = true;
-    private int shadowMap = 0;
     
     public DirectionalLight(Vector3fc direction) {
         if (direction != null) {
@@ -91,17 +88,6 @@ public class DirectionalLight implements Light {
     public Vector3f getDiffuseColor() {
         return diffuseColor;
     }
-
-    @Override
-    public int getShadowMap() {
-        return shadowMap;
-    }
-    
-    @Override
-    public void freeShadowMap() {
-        glDeleteTextures(this.shadowMap);
-        this.shadowMap = 0;
-    }
     
     @Override
     public void render(Cube cube, int lightmap) {
@@ -120,39 +106,17 @@ public class DirectionalLight implements Light {
     
     @Override
     public void renderShadowMap(List<Cube> cubes) {
+        ShadowMap2DFBO.updateShadowMapSize(ShadowMap2DFBO.DEFAULT_WIDTH, ShadowMap2DFBO.DEFAULT_HEIGHT);
+        
         this.camera.setFront(this.direction);
         
-        freeShadowMap();
-        
-        glActiveTexture(GL_TEXTURE0);
-        
-        this.shadowMap = glGenTextures();
-        glBindTexture(GL_TEXTURE_2D, this.shadowMap);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT32, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, 0);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, new float[]{1f, 1f, 1f, 1f});
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_REF_TO_TEXTURE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC, GL_LEQUAL);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        
-        int fbo = glGenFramebuffers();
-        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
-        glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, this.shadowMap, 0);
-        glDrawBuffers(GL_NONE);
-        glReadBuffer(GL_NONE);
-        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-            throw new RuntimeException("Could not create shadow FBO!");
-        }
-        
-        glViewport(0, 0, SHADOW_MAP_WIDTH, SHADOW_MAP_HEIGHT);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, ShadowMap2DFBO.fbo());
+        glViewport(0, 0, ShadowMap2DFBO.width(), ShadowMap2DFBO.height());
         
         glClear(GL_DEPTH_BUFFER_BIT);
-        glUseProgram(DirectionalLightShadowShader.SHADER_PROGRAM);
+        glUseProgram(DirectionalLightShadowProgram.SHADER_PROGRAM);
         
-        DirectionalLightShadowShader.sendPerFrameUniforms(this.camera.getProjectionViewFloat());
+        DirectionalLightShadowProgram.sendPerFrameUniforms(this.camera.getProjectionViewFloat());
         
         for (Cube c:cubes) {
             if (c.isGroundCube()) {
@@ -160,7 +124,7 @@ public class DirectionalLight implements Light {
             } else {
                 glBindVertexArray(CubeVAO.VAO);
             }
-            DirectionalLightShadowShader.sendPerDrawUniforms(c.getModel());
+            DirectionalLightShadowProgram.sendPerDrawUniforms(c.getModel());
             
             glDrawElements(GL_TRIANGLES, Cube.NUMBER_OF_INDICES, GL_UNSIGNED_INT, 0);
             glBindVertexArray(0);
@@ -169,8 +133,7 @@ public class DirectionalLight implements Light {
         glUseProgram(0);
         glViewport(0, 0, Main.WIDTH, Main.HEIGHT);
         
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDeleteFramebuffers(fbo);
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     }
 
     @Override

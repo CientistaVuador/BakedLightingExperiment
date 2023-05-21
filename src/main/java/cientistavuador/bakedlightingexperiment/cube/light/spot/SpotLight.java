@@ -27,9 +27,14 @@
 package cientistavuador.bakedlightingexperiment.cube.light.spot;
 
 import cientistavuador.bakedlightingexperiment.Main;
+import static cientistavuador.bakedlightingexperiment.camera.Camera.DEFAULT_WORLD_UP;
 import cientistavuador.bakedlightingexperiment.cube.Cube;
+import cientistavuador.bakedlightingexperiment.cube.CubeVAO;
 import cientistavuador.bakedlightingexperiment.cube.light.Light;
+import cientistavuador.bakedlightingexperiment.cube.light.ShadowMap2DFBO;
 import java.util.List;
+import org.joml.Matrix4f;
+import org.joml.Matrix4fc;
 import org.joml.Vector3f;
 import org.joml.Vector3fc;
 import static org.lwjgl.opengl.GL33C.*;
@@ -39,19 +44,51 @@ import static org.lwjgl.opengl.GL33C.*;
  * @author Cien
  */
 public class SpotLight implements Light {
+
+    public static final float NEAR_PLANE = 0.01f;
+    public static final float FAR_PLANE = 1000f;
+    
+    private final Matrix4f projectionView = new Matrix4f();
+
     private final Vector3f position;
     private final Vector3f direction;
     private final Vector3f diffuseColor;
     private final Vector3f ambientColor;
-    private float cutOff = 10f;
-    private float outerCutOff = 60.0f;
+    private float cutOff = 50f;
+    private float outerCutOff = 60f;
     private boolean enabled = true;
-    
+
     public SpotLight(Vector3fc position, Vector3f direction, Vector3fc color) {
         this.position = new Vector3f(position);
         this.direction = new Vector3f(direction);
-        this.diffuseColor = new Vector3f(color).mul(1.5f);
-        this.ambientColor = new Vector3f(color).mul(0.15f);
+        this.diffuseColor = new Vector3f(color).mul(4f);
+        this.ambientColor = new Vector3f(color).mul(0.65f);
+        calculateProjectionView();
+    }
+
+    private void calculateProjectionView() {
+        Matrix4f projection = new Matrix4f()
+                .perspective((float) Math.toRadians(this.outerCutOff * 2f),
+                        (float) ShadowMap2DFBO.width() / ShadowMap2DFBO.height(),
+                        0.01f,
+                        1000f
+                );
+
+        Vector3f right = new Vector3f(DEFAULT_WORLD_UP).cross(this.direction).normalize();
+        Vector3f up = new Vector3f(direction).cross(right).normalize();
+
+        Matrix4f view = new Matrix4f()
+                .lookAt(
+                        this.position.x(),
+                        this.position.y(),
+                        this.position.z(),
+                        this.position.x() + this.direction.x(),
+                        this.position.y() + this.direction.y(),
+                        this.position.z() + this.direction.z(),
+                        up.x(), up.y(), up.z()
+                );
+        
+        this.projectionView.set(projection).mul(view);
     }
 
     public Vector3f getPosition() {
@@ -78,6 +115,10 @@ public class SpotLight implements Light {
         this.outerCutOff = outerCutOff;
     }
 
+    public Matrix4fc getProjectionView() {
+        return projectionView;
+    }
+    
     @Override
     public Vector3f getAmbientColor() {
         return ambientColor;
@@ -89,33 +130,60 @@ public class SpotLight implements Light {
     }
 
     @Override
-    public int getShadowMap() {
-        return 0;
-    }
-    
-    @Override
-    public void freeShadowMap() {
-        
-    }
-    
-    @Override
     public void render(Cube cube, int lightmap) {
         glUseProgram(SpotLightProgram.SHADER_PROGRAM);
         glBindVertexArray(Cube.VAO);
-        
+
         SpotLightProgram.sendUniforms(lightmap, cube.getModel(), cube.getNormalModel(), this);
         glDrawElements(GL_TRIANGLES, Cube.NUMBER_OF_INDICES, GL_UNSIGNED_INT, 0);
-        
+
         Main.NUMBER_OF_DRAWCALLS++;
         Main.NUMBER_OF_VERTICES += Cube.NUMBER_OF_INDICES;
-        
+
         glBindVertexArray(0);
         glUseProgram(0);
     }
-    
+
     @Override
     public void renderShadowMap(List<Cube> cubes) {
+        ShadowMap2DFBO.updateShadowMapSize(
+                ShadowMap2DFBO.DEFAULT_WIDTH / 4,
+                ShadowMap2DFBO.DEFAULT_HEIGHT / 4
+        );
         
+        calculateProjectionView();
+        
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, ShadowMap2DFBO.fbo());
+        glViewport(0, 0, ShadowMap2DFBO.width(), ShadowMap2DFBO.height());
+        
+        glClear(GL_DEPTH_BUFFER_BIT);
+        glUseProgram(SpotLightShadowProgram.SHADER_PROGRAM);
+        
+        SpotLightShadowProgram.sendPerFrameUniforms(
+                this.projectionView,
+                NEAR_PLANE,
+                FAR_PLANE,
+                this.position.x(),
+                this.position.y(),
+                this.position.z()
+        );
+        
+        for (Cube c:cubes) {
+            if (c.isGroundCube()) {
+                glBindVertexArray(CubeVAO.GROUND_CUBE_VAO);
+            } else {
+                glBindVertexArray(CubeVAO.VAO);
+            }
+            SpotLightShadowProgram.sendPerDrawUniforms(c.getModel());
+            
+            glDrawElements(GL_TRIANGLES, Cube.NUMBER_OF_INDICES, GL_UNSIGNED_INT, 0);
+            glBindVertexArray(0);
+        }
+        
+        glUseProgram(0);
+        glViewport(0, 0, Main.WIDTH, Main.HEIGHT);
+        
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     }
 
     @Override
