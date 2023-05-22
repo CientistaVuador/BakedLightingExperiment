@@ -141,6 +141,10 @@ public class DirectionalLightProgram {
             glUniformMatrix3fv(location, false, matrixBuffer);
         }
     }
+    
+    public static void init() {
+        DirectionalLightShadowProgram.init();
+    }
 
     public static void sendUniforms(int lightmapTexture, Matrix4fc model, Matrix3fc normalModel, DirectionalLight light) {
         sendMatrix(MODEL_INDEX, model);

@@ -165,6 +165,10 @@ public class SpotLightProgram {
         }
     }
 
+    public static void init() {
+        SpotLightShadowProgram.init();
+    }
+    
     public static void sendUniforms(int lightmapTexture, Matrix4fc model, Matrix3fc normalModel, SpotLight light) {
         sendMatrix(MODEL_INDEX, model);
         sendMatrix3f(NORMAL_MODEL_INDEX, normalModel);

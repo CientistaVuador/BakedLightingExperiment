@@ -24,26 +24,50 @@
  *
  * For more information, please refer to <https://unlicense.org>
  */
-package cientistavuador.bakedlightingexperiment.cube.light;
+package cientistavuador.bakedlightingexperiment.cube.light.icon;
 
-import cientistavuador.bakedlightingexperiment.cube.light.icon.IconType;
-import cientistavuador.bakedlightingexperiment.cube.Cube;
-import java.util.List;
-import org.joml.Vector3f;
-import org.joml.Vector3fc;
+import static org.lwjgl.opengl.GL33C.*;
 
 /**
  *
  * @author Cien
  */
-public interface Light {
-    public Vector3fc getPosition();
-    public Vector3f getIconColor();
-    public Vector3f getAmbientColor();
-    public Vector3f getDiffuseColor();
-    public boolean isEnabled();
-    public void setEnabled(boolean enabled);
-    public void render(Cube cube, int lightmap);
-    public void renderShadowMap(List<Cube> cubes);
-    public IconType getIconType();
+public class IconVAO {
+    
+    public static final int VAO = glGenVertexArrays();
+    public static final int NUMBER_OF_INDICES = 3 * 2;
+    
+    static {
+        glBindVertexArray(VAO);
+        
+        int vbo = glGenBuffers();
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        glBufferData(GL_ARRAY_BUFFER, new float[] {
+            -0.25f, -0.25f, 0f, 0f, 0f,
+            0.25f, -0.25f, 0f, 1f, 0f,
+            -0.25f, 0.25f, 0f, 0f, 1f,
+            0.25f, 0.25f, 0f, 1f, 1f
+        }, GL_STATIC_DRAW);
+        
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, false, 5 * Float.BYTES, 0);
+        
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, false, 5 * Float.BYTES, (3 * Float.BYTES));
+        
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        
+        int ebo = glGenBuffers();
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, new int[] {
+            0, 1, 2, 2, 1, 3
+        }, GL_STATIC_DRAW);
+        
+        glBindVertexArray(0);
+    }
+    
+    private IconVAO() {
+        
+    }
+    
 }

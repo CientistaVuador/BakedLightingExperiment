@@ -24,26 +24,21 @@
  *
  * For more information, please refer to <https://unlicense.org>
  */
-package cientistavuador.bakedlightingexperiment.cube.light;
-
-import cientistavuador.bakedlightingexperiment.cube.light.icon.IconType;
-import cientistavuador.bakedlightingexperiment.cube.Cube;
-import java.util.List;
-import org.joml.Vector3f;
-import org.joml.Vector3fc;
+package cientistavuador.bakedlightingexperiment.cube.light.icon;
 
 /**
  *
  * @author Cien
  */
-public interface Light {
-    public Vector3fc getPosition();
-    public Vector3f getIconColor();
-    public Vector3f getAmbientColor();
-    public Vector3f getDiffuseColor();
-    public boolean isEnabled();
-    public void setEnabled(boolean enabled);
-    public void render(Cube cube, int lightmap);
-    public void renderShadowMap(List<Cube> cubes);
-    public IconType getIconType();
+public enum IconType {
+    SPOT(IconTexture.SPOT_ICON), POINT(IconTexture.POINT_ICON), NONE(0);
+    
+    private final int texture;
+    private IconType(int texture) {
+        this.texture = texture;
+    }
+    
+    public int texture() {
+        return this.texture;
+    }
 }

@@ -30,6 +30,7 @@ import cientistavuador.bakedlightingexperiment.Main;
 import static cientistavuador.bakedlightingexperiment.camera.Camera.DEFAULT_WORLD_UP;
 import cientistavuador.bakedlightingexperiment.cube.Cube;
 import cientistavuador.bakedlightingexperiment.cube.CubeVAO;
+import cientistavuador.bakedlightingexperiment.cube.light.icon.IconType;
 import cientistavuador.bakedlightingexperiment.cube.light.Light;
 import cientistavuador.bakedlightingexperiment.cube.light.ShadowMap2DFBO;
 import java.util.List;
@@ -54,15 +55,19 @@ public class SpotLight implements Light {
     private final Vector3f direction;
     private final Vector3f diffuseColor;
     private final Vector3f ambientColor;
-    private float cutOff = 50f;
+    private final Vector3f iconColor;
+    private float cutOff = 60f * 0.65f;
     private float outerCutOff = 60f;
     private boolean enabled = true;
 
-    public SpotLight(Vector3fc position, Vector3f direction, Vector3fc color) {
+    public SpotLight(Vector3fc position, Vector3f direction, Vector3fc color, float angle, float brightness) {
         this.position = new Vector3f(position);
         this.direction = new Vector3f(direction);
-        this.diffuseColor = new Vector3f(color).mul(4f);
-        this.ambientColor = new Vector3f(color).mul(0.65f);
+        this.diffuseColor = new Vector3f(color).mul(brightness);
+        this.ambientColor = new Vector3f(color).mul(brightness / 32f);
+        this.iconColor = new Vector3f(color);
+        this.outerCutOff = angle;
+        this.cutOff = angle * 0.25f;
         calculateProjectionView();
     }
 
@@ -91,6 +96,12 @@ public class SpotLight implements Light {
         this.projectionView.set(projection).mul(view);
     }
 
+    @Override
+    public Vector3f getIconColor() {
+        return this.iconColor;
+    }
+    
+    @Override
     public Vector3f getPosition() {
         return position;
     }
@@ -194,5 +205,10 @@ public class SpotLight implements Light {
     @Override
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    @Override
+    public IconType getIconType() {
+        return IconType.SPOT;
     }
 }

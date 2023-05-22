@@ -24,19 +24,22 @@
  *
  * For more information, please refer to <https://unlicense.org>
  */
-package cientistavuador.bakedlightingexperiment.cube.light.directional;
+package cientistavuador.bakedlightingexperiment.cube.light.icon;
 
+import cientistavuador.bakedlightingexperiment.cube.light.Light;
 import cientistavuador.bakedlightingexperiment.util.BetterUniformSetter;
 import cientistavuador.bakedlightingexperiment.util.ProgramCompiler;
 import org.joml.Matrix4fc;
+import org.joml.Vector3fc;
+import static org.lwjgl.opengl.GL33C.*;
 
 /**
  *
  * @author Cien
  */
-public class DirectionalLightShadowProgram {
+public class IconProgram {
     
-    public static final String VERTEX_SHADER = 
+    public static final String VERTEX_SHADER =
             """
             #version 330 core
             
@@ -44,8 +47,12 @@ public class DirectionalLightShadowProgram {
             uniform mat4 model;
             
             layout (location = 0) in vec3 vertexPosition;
+            layout (location = 1) in vec2 vertexTexture;
+            
+            out vec2 texturePosition;
             
             void main() {
+                texturePosition = vertexTexture;
                 gl_Position = projectionView * model * vec4(vertexPosition, 1.0);
             }
             """;
@@ -54,13 +61,29 @@ public class DirectionalLightShadowProgram {
             """
             #version 330 core
             
-            void main() {
+            uniform sampler2D lightIcon;
+            uniform sampler2D lightOverlay;
             
+            uniform vec3 lightColor;
+            
+            in vec2 texturePosition;
+            
+            layout (location = 0) out vec4 colorOutput;
+            
+            void main() {
+                vec4 source = texture(lightOverlay, texturePosition);
+                source.rgb *= lightColor;
+                vec4 dest = texture(lightIcon, texturePosition);
+                
+                float a = source.a + dest.a * (1.0 - source.a);
+                vec3 color = (source.rgb * source.a + dest.rgb * dest.a * (1.0 - source.a)) / a;
+                
+                colorOutput = vec4(color, a);
             }
             """;
     
     public static final int SHADER_PROGRAM = ProgramCompiler.compile(VERTEX_SHADER, FRAGMENT_SHADER);
-    public static final BetterUniformSetter UNIFORMS = new BetterUniformSetter(SHADER_PROGRAM, "projectionView", "model");
+    private static final BetterUniformSetter UNIFORMS = new BetterUniformSetter(SHADER_PROGRAM, "projectionView", "model", "lightIcon", "lightOverlay", "lightColor");
     
     public static void init() {
         
@@ -68,13 +91,24 @@ public class DirectionalLightShadowProgram {
     
     public static void sendPerFrameUniforms(Matrix4fc projectionView) {
         BetterUniformSetter.uniformMatrix4fv(UNIFORMS.locationOf("projectionView"), projectionView);
+        
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, IconTexture.LIGHT_OVERLAY);
+        glUniform1i(UNIFORMS.locationOf("lightOverlay"), 0);
     }
     
-    public static void sendPerDrawUniforms(Matrix4fc model) {
+    public static void sendPerDrawUniforms(Matrix4fc model, int iconTexture, Vector3fc lightColor) {
         BetterUniformSetter.uniformMatrix4fv(UNIFORMS.locationOf("model"), model);
+        
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, iconTexture);
+        glUniform1i(UNIFORMS.locationOf("lightIcon"), 1);
+        
+        glUniform3f(UNIFORMS.locationOf("lightColor"), lightColor.x(), lightColor.y(), lightColor.z());
     }
     
-    private DirectionalLightShadowProgram() {
+    private IconProgram() {
         
     }
+    
 }

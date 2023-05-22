@@ -72,6 +72,10 @@ public class SpotLightShadowProgram {
     public static final int SHADER_PROGRAM = ProgramCompiler.compile(VERTEX_SHADER, FRAGMENT_SHADER);
     public static final BetterUniformSetter UNIFORMS = new BetterUniformSetter(SHADER_PROGRAM, "projectionView", "model", "nearPlane", "farPlane", "camPos");
     
+    public static void init() {
+        
+    }
+    
     public static void sendPerFrameUniforms(Matrix4fc projectionView, float nearPlane, float farPlane, float camX, float camY, float camZ) {
         BetterUniformSetter.uniformMatrix4fv(UNIFORMS.locationOf("projectionView"), projectionView);
         glUniform1f(UNIFORMS.locationOf("nearPlane"), nearPlane);

@@ -29,6 +29,7 @@ package cientistavuador.bakedlightingexperiment.cube.light.point;
 import cientistavuador.bakedlightingexperiment.Main;
 import cientistavuador.bakedlightingexperiment.cube.Cube;
 import cientistavuador.bakedlightingexperiment.cube.CubeVAO;
+import cientistavuador.bakedlightingexperiment.cube.light.icon.IconType;
 import cientistavuador.bakedlightingexperiment.cube.light.Light;
 import cientistavuador.bakedlightingexperiment.cube.light.ShadowCubeMapFBO;
 import java.util.List;
@@ -48,14 +49,22 @@ public class PointLight implements Light {
     private final Vector3f position;
     private final Vector3f diffuseColor;
     private final Vector3f ambientColor;
+    private final Vector3f iconColor;
     private boolean enabled = true;
 
-    public PointLight(Vector3fc position, Vector3fc color) {
+    public PointLight(Vector3fc position, Vector3fc color, float brightness) {
         this.position = new Vector3f(position);
-        this.diffuseColor = new Vector3f(color).mul(4f);
-        this.ambientColor = new Vector3f(color).mul(0.65f);
+        this.diffuseColor = new Vector3f(color).mul(brightness);
+        this.ambientColor = new Vector3f(color).mul(brightness / 32f);
+        this.iconColor = new Vector3f(color);
     }
 
+    @Override
+    public Vector3f getIconColor() {
+        return this.iconColor;
+    }
+
+    @Override
     public Vector3f getPosition() {
         return position;
     }
@@ -127,5 +136,10 @@ public class PointLight implements Light {
     @Override
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    @Override
+    public IconType getIconType() {
+        return IconType.POINT;
     }
 }

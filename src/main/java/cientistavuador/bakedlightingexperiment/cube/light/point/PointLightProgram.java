@@ -149,6 +149,10 @@ public class PointLightProgram {
             glUniformMatrix3fv(location, false, matrixBuffer);
         }
     }
+    
+    public static void init() {
+        PointLightShadowProgram.init();
+    }
 
     public static void sendUniforms(int lightmapTexture, Matrix4fc model, Matrix3fc normalModel, PointLight light) {
         sendMatrix(MODEL_INDEX, model);

@@ -32,8 +32,8 @@ import cientistavuador.bakedlightingexperiment.cube.Cube;
 import cientistavuador.bakedlightingexperiment.cube.CubeProgram;
 import cientistavuador.bakedlightingexperiment.cube.CubeVAO;
 import cientistavuador.bakedlightingexperiment.cube.light.Light;
-import cientistavuador.bakedlightingexperiment.cube.light.ShadowMap2DFBO;
 import cientistavuador.bakedlightingexperiment.cube.light.directional.DirectionalLight;
+import cientistavuador.bakedlightingexperiment.cube.light.icon.IconRender;
 import cientistavuador.bakedlightingexperiment.cube.light.point.PointLight;
 import cientistavuador.bakedlightingexperiment.cube.light.spot.SpotLight;
 import cientistavuador.bakedlightingexperiment.ubo.CameraUBO;
@@ -47,7 +47,6 @@ import java.awt.Toolkit;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.JColorChooser;
-import javax.swing.colorchooser.ColorSelectionModel;
 import org.joml.Matrix4f;
 import org.joml.Vector3dc;
 import org.joml.Vector3f;
@@ -75,6 +74,9 @@ public class Game {
     private boolean textEnabled = true;
     private boolean colorChooserOpen = false;
     private boolean whereIsIt = false;
+    private boolean hideIcons = false;
+    private float brightness = 4.0f;
+    private float spotAngle = 60.0f;
 
     private Game() {
 
@@ -116,6 +118,19 @@ public class Game {
         }
 
         glUseProgram(0);
+
+        IconRender.begin(cameraProjectionView);
+
+        if (!this.hideIcons) {
+            for (Light light : this.lights) {
+                IconRender.render(
+                        light,
+                        this.camera.getView()
+                );
+            }
+
+            IconRender.finish();
+        }
 
         AabRender.renderQueue(camera);
 
@@ -161,14 +176,17 @@ public class Game {
                                 .append("\tShift + Right Click - Place Point Light.\n")
                                 .append("\tB - Remove Last Light.\n")
                                 .append("\tT - Hide This Wall of Text.\n")
+                                .append("\tI - ").append(this.hideIcons ? "Show" : "Hide").append(" Light Icons.")
                                 .toString(),
                         "\nLight Color\n",
                         new StringBuilder()
                                 .append("\tC - Open Color Chooser").append(this.whereIsIt ? " (BEHIND THE WINDOW!)" : "").append("\n")
+                                .append("\tUp/Down Arrow (+Shift x10) - Brightness: ").append(formatColor(this.brightness)).append("\n")
+                                .append("\tLeft/Right Arrow (+Shift x10) - Spotlight Angle: ").append(formatColor(this.spotAngle)).append("\n")
                                 .append("\tO - Next Component\n")
                                 .append("\tP - Increase/Decrease Component\n").append("\t\t").append(componentSelected).append("\n\t\t[").append(formatColor(this.colors[0])).append("] [").append(formatColor(this.colors[1])).append("] [").append(formatColor(this.colors[2])).append("]\n")
                                 .toString(),
-                         "\t\t[##########]"
+                        "\t\t[##########]"
                     }
             );
         }
@@ -292,13 +310,51 @@ public class Game {
                 this.whereIsIt = true;
             }
         }
+        if (key == GLFW_KEY_I && action == GLFW_PRESS) {
+            this.hideIcons = !this.hideIcons;
+        }
+        if ((key == GLFW_KEY_UP || key == GLFW_KEY_DOWN) && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+            float multiplier = 1f;
+            if ((mods & GLFW_MOD_SHIFT) != 0) {
+                multiplier = 10f;
+            }
+            if (key == GLFW_KEY_UP) {
+                this.brightness += 0.1f * multiplier;
+            } else {
+                this.brightness -= 0.1f * multiplier;
+            }
+            if (this.brightness > 50f) {
+                this.brightness = 50f;
+            }
+            if (this.brightness < 0.1f) {
+                this.brightness = 0.1f;
+            }
+        }
+        if ((key == GLFW_KEY_LEFT || key == GLFW_KEY_RIGHT) && (action == GLFW_PRESS || action == GLFW_REPEAT)) {
+            float multiplier = 1f;
+            if ((mods & GLFW_MOD_SHIFT) != 0) {
+                multiplier = 10f;
+            }
+            if (key == GLFW_KEY_RIGHT) {
+                this.spotAngle += 0.1f * multiplier;
+            } else {
+                this.spotAngle -= 0.1f * multiplier;
+            }
+            if (this.spotAngle > 85f) {
+                this.spotAngle = 85f;
+            }
+            if (this.spotAngle < 10f) {
+                this.spotAngle = 10f;
+            }
+        }
     }
 
     public void mouseCallback(long window, int button, int action, int mods) {
         if (button == GLFW_MOUSE_BUTTON_RIGHT && (mods & GLFW_MOD_SHIFT) != 0 && action == GLFW_PRESS) {
             PointLight light = new PointLight(
                     new Vector3f().set(this.camera.getPosition()),
-                    new Vector3f(this.colors)
+                    new Vector3f(this.colors),
+                    this.brightness
             );
             this.lights.add(light);
         }
@@ -306,7 +362,9 @@ public class Game {
             SpotLight light = new SpotLight(
                     new Vector3f().set(this.camera.getPosition()),
                     new Vector3f(this.camera.getFront()),
-                    new Vector3f(this.colors)
+                    new Vector3f(this.colors),
+                    this.spotAngle,
+                    this.brightness
             );
             this.lights.add(light);
         }

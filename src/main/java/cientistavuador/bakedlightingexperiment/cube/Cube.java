@@ -29,6 +29,11 @@ package cientistavuador.bakedlightingexperiment.cube;
 import cientistavuador.bakedlightingexperiment.Main;
 import static cientistavuador.bakedlightingexperiment.Main.DEFAULT_CLEAR_COLOR;
 import cientistavuador.bakedlightingexperiment.cube.light.Light;
+import cientistavuador.bakedlightingexperiment.cube.light.ShadowCubeMapFBO;
+import cientistavuador.bakedlightingexperiment.cube.light.ShadowMap2DFBO;
+import cientistavuador.bakedlightingexperiment.cube.light.directional.DirectionalLightProgram;
+import cientistavuador.bakedlightingexperiment.cube.light.point.PointLightProgram;
+import cientistavuador.bakedlightingexperiment.cube.light.spot.SpotLightProgram;
 import java.nio.ByteBuffer;
 import org.joml.Matrix3f;
 import org.joml.Matrix4f;
@@ -49,7 +54,11 @@ public class Cube {
     public static final int VAO = CubeVAO.VAO;
 
     public static void init() {
-
+        DirectionalLightProgram.init();
+        PointLightProgram.init();
+        SpotLightProgram.init();
+        ShadowCubeMapFBO.init();
+        ShadowMap2DFBO.init();
     }
 
     private final Matrix4f model = new Matrix4f();

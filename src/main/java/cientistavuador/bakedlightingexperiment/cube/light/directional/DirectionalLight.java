@@ -30,6 +30,7 @@ import cientistavuador.bakedlightingexperiment.Main;
 import cientistavuador.bakedlightingexperiment.camera.OrthoCamera;
 import cientistavuador.bakedlightingexperiment.cube.Cube;
 import cientistavuador.bakedlightingexperiment.cube.CubeVAO;
+import cientistavuador.bakedlightingexperiment.cube.light.icon.IconType;
 import cientistavuador.bakedlightingexperiment.cube.light.Light;
 import cientistavuador.bakedlightingexperiment.cube.light.ShadowMap2DFBO;
 import java.util.List;
@@ -44,10 +45,13 @@ import static org.lwjgl.opengl.GL33C.*;
  */
 public class DirectionalLight implements Light {
     
+    private static final Vector3f position = new Vector3f(0f);
+    
     private final OrthoCamera camera = new OrthoCamera();
     private final Vector3f direction = new Vector3f(-0.5f, -1f, 0.5f).normalize();
-    private final Vector3f diffuseColor = new Vector3f(255f / 255f, 253f / 255f, 242f / 255f).mul(1.0f);
-    private final Vector3f ambientColor = new Vector3f(255f / 255f, 253f / 255f, 242f / 255f).mul(0.3f);
+    private final Vector3f iconColor = new Vector3f(255f / 255f, 253f / 255f, 242f / 255f);
+    private final Vector3f diffuseColor = new Vector3f(iconColor).mul(1.0f);
+    private final Vector3f ambientColor = new Vector3f(iconColor).mul(0.3f);
     private boolean enabled = true;
     
     public DirectionalLight(Vector3fc direction) {
@@ -71,6 +75,16 @@ public class DirectionalLight implements Light {
         this(null);
     }
 
+    @Override
+    public Vector3f getIconColor() {
+        return this.iconColor;
+    }
+    
+    @Override
+    public Vector3fc getPosition() {
+        return DirectionalLight.position;
+    }
+    
     public OrthoCamera getCamera() {
         return camera;
     }
@@ -144,6 +158,11 @@ public class DirectionalLight implements Light {
     @Override
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    @Override
+    public IconType getIconType() {
+        return IconType.NONE;
     }
     
 }

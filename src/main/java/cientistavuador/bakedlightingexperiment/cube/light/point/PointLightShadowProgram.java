@@ -184,6 +184,10 @@ public class PointLightShadowProgram {
         );
     }
 
+    public static void init() {
+        
+    }
+    
     public static void sendPerDrawUniforms(Matrix4fc model) {
         BetterUniformSetter.uniformMatrix4fv(UNIFORMS.locationOf("model"), model);
     }
